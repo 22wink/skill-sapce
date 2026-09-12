@@ -74,7 +74,7 @@ Cursor 会从下列目录加载 skills：
 **Windows（PowerShell，管理员或已开启开发者模式）：**
 
 ```powershell
-git clone https://github.com/22wink/skill-sapce.git D:\skill-sapce
+git clone git@github.com:22wink/skill-sapce.git D:\skill-sapce
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.cursor\skills"
 
 # 示例：安装 soft-card-ui
@@ -84,7 +84,7 @@ cmd /c mklink /J "$env:USERPROFILE\.cursor\skills\soft-card-ui" "D:\skill-sapce\
 **macOS / Linux：**
 
 ```bash
-git clone https://github.com/22wink/skill-sapce.git ~/skill-sapce
+git clone git@github.com:22wink/skill-sapce.git ~/skill-sapce
 mkdir -p ~/.cursor/skills
 ln -s ~/skill-sapce/ui/soft-card-ui ~/.cursor/skills/soft-card-ui
 ```
@@ -147,5 +147,5 @@ npx skills add 22wink/skill-sapce/ui/soft-card-ui --agent cursor
 
 ## 上游
 
-- Remote: https://github.com/22wink/skill-sapce.git
+- Remote: git@github.com:22wink/skill-sapce.git
 - Branch: `main`
