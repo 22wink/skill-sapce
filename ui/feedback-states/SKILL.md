@@ -14,6 +14,17 @@ description: >-
 
 覆盖「用户做了一次操作之后（以及危险操作之前），界面如何说话」的模式库。框架无关；**状态机与时机优先于视觉皮肤**。可与 `soft-card-ui`（外观）或业务页并存，不替代表单校验规则本身。
 
+## Demo ≠ 业务皮肤（重要）
+
+`demo.html`（及同类演示页）中的样式**只为讲清反馈时机与状态**，不代表项目最终 UI。
+
+落地时：
+
+1. **优先用项目组件库已有能力**：如 Message/Toast、Skeleton、Empty、Dialog、Banner、Progress、Button loading。
+2. **按本 skill 补齐行为契约**：最短 busy、骨架延迟、乐观回滚、Undo 世代、滑满阈值等——用库的 API 与主题 token 实现。
+3. **不要**把 demo 配色/圆角/字体当规范贴进业务；库有主题就走主题，有设计稿就走设计稿。
+4. 映射示例可参考同目录 `library-mapping.md`（若存在）；总约定见 [`../README.md`](../README.md)。
+
 ## When to use
 
 - 提交、保存、删除、发送、刷新等需要明确反馈

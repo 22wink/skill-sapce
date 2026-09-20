@@ -17,6 +17,19 @@ description: >-
 
 可与 `feedback-states` 搭配：甩出删除用 Undo window；长按环与滑满确认同属「蓄力确认」家族。
 
+## Demo ≠ 业务皮肤（重要）
+
+`demo.html` 里的颜色、圆角、字体、阴影**仅用于演示手感**，不是设计交付物。
+
+落地到真实项目时：
+
+1. **优先使用当前项目的 UI 组件库 / Design System**（按钮、卡片、列表、Toast、主题变量等）。
+2. **只复用本 skill 的交互契约**（跟手、阈值、回弹、stagger、Undo 时机等），把行为挂到项目已有组件上。
+3. **不要**把 demo 的 CSS 变量和选择器整段复制进业务，以免和品牌/库风格冲突。
+4. 若项目已有设计规范，以项目为准；仅在无规范的新项目中可临时参考 demo 或 `soft-card-ui`。
+
+详见 [`../README.md`](../README.md)。
+
 ## When to use
 
 - 用户点名本 skill，或描述下列任一交互
@@ -83,6 +96,7 @@ Micro Interactions Progress:
 - 给键盘/读屏：展开有 `aria-expanded`；选中有名称可读；Hold 提供替代确认
 - 与项目 token 对齐颜色；本 skill 不强制品牌色
 - 甩出删除与 `feedback-states` Undo window 对齐世代 token，防双删
+- 落地时用项目组件库承载外观；demo 皮肤不可当作业务规范
 
 **Don't**
 
@@ -94,6 +108,7 @@ Micro Interactions Progress:
 - Swipe 与纵向滚动抢手势却无方向锁
 - Shared element 只做淡入淡出、没有位置/尺寸 morph
 - Hold ring 未满却触发确认
+- 把 `demo.html` 的 CSS/配色原样贴进已有设计体系的项目
 
 ## Quality checklist
 

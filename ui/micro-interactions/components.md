@@ -400,6 +400,6 @@ Back: morph 收回列表原位
 | 圆角 | 胶囊 / dock 用全圆或大圆角；卡与托盘 `16–24` |
 | 时序 | 可打断；以最新手势为准 |
 | 数据 | 名称、进度项、明细、图标、统计均为 props，不写死文案 |
-| 皮肤 | 可与 `soft-card-ui` token 混用，但不依赖其物流语义 |
+| 皮肤 | 可与 `soft-card-ui` token 或**项目 Design System** 混用；`demo.html` 皮肤仅示意，落地必须适配项目组件库/品牌，不复制 demo CSS |
 | 确认家族 | Hold ring ↔ feedback-states 滑满确认；可恢复删 ↔ Undo |
 | 测试 | 每组件至少覆盖：初始态、一次完整交互、快速取消/未满松手 |

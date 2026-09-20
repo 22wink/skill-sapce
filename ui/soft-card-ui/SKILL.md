@@ -13,6 +13,18 @@ description: >-
 
 将「物流/配送类现代 App」设计稿提炼为可复用的 Soft Card 设计系统。默认主题可换（黄/黑、紫、蓝），**结构与组件语言保持一致**。
 
+## 与项目 UI 的关系（重要）
+
+本 skill 是**一套可选的视觉/布局语言**，不是强制覆盖层。
+
+落地时：
+
+1. 若项目**已有** Design System / 组件库 / 品牌色：**优先沿用项目 token 与组件**；只借用本 skill 的布局模式与组件配方（卡片栈、地图+浮层、pill 状态等），不要强行换成 demo 式配色。
+2. 若项目**没有**统一规范、且产品明确要 soft-card / 物流风：再按本 skill 的 DNA 与 `tokens.md` 落地，并抽成项目级变量。
+3. 与 `micro-interactions` / `feedback-states` 合用时：交互走那两份契约，皮肤仍跟当前项目（或本 skill DNA），**不以任何 demo.html 皮肤为准**。
+
+总约定见 [`../README.md`](../README.md)。
+
 ## When to use
 
 - 用户提到 soft-card-ui、软卡片、物流 App 风、tracking UI、大圆角卡片
