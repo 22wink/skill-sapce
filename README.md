@@ -8,7 +8,7 @@
 
 | 目录 | 放什么 |
 |------|--------|
-| `ui/` | 设计系统、视觉语言、布局模式、动效规范 |
+| `ui/` | 设计系统、视觉语言、布局模式、动效规范；**demo 仅为示意，落地需适配项目组件库/设计风格**（见 [`ui/README.md`](./ui/README.md)） |
 | `frontend/` | 前端工程：框架约定、组件写法、样式工程 |
 | `backend/` | 后端 / API / 数据模型 |
 | `devops/` | CI、部署、环境、运维脚本 |
@@ -24,6 +24,7 @@
 skill-sapce/
 ├── README.md
 ├── ui/
+│   ├── README.md             # Demo ≠ 业务皮肤；落地适配约定
 │   ├── .gitkeep
 │   ├── soft-card-ui/         # Soft Card UI 设计系统
 │   │   ├── SKILL.md
@@ -33,11 +34,11 @@ skill-sapce/
 │   ├── micro-interactions/   # 手势微交互组件
 │   │   ├── SKILL.md
 │   │   ├── components.md
-│   │   └── demo.html
+│   │   └── demo.html         # 交互示意，非业务最终样式
 │   └── feedback-states/      # 操作反馈模式
 │       ├── SKILL.md
 │       ├── patterns.md
-│       └── demo.html
+│       └── demo.html         # 交互示意，非业务最终样式
 ├── frontend/
 │   └── .gitkeep
 ├── backend/
@@ -54,6 +55,13 @@ skill-sapce/
 
 约定：`<category>/<skill-name>/SKILL.md`。只做一层分类，不要再嵌套。
 
+## ui/ 落地原则（摘要）
+
+- **Demo 示意手感**：颜色、圆角、字体可替换。
+- **Skill 约束行为**：状态机、阈值、回弹、忙态、Undo 等尽量保留。
+- **项目决定皮肤**：优先当前 UI 组件库与设计规范，禁止把 demo CSS 当品牌规范复制进业务。
+
+详见 [ui/README.md](./ui/README.md)。
 ## Skill 清单
 
 | 分类 | Skill | 用途 | 何时触发 |
