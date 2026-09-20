@@ -59,7 +59,7 @@ skill-sapce/
 | 分类 | Skill | 用途 | 何时触发 |
 |------|-------|------|----------|
 | `ui/` | [`soft-card-ui`](./ui/soft-card-ui/) | Soft Card / 物流 App 风跨端 UI | 提到 soft-card、物流追踪风、大圆角卡片、tracking UI |
-| `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 六个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大图标、下拉摘要 |
+| `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 九个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大、下拉摘要、甩出删除、共享元素、长按进度环 |
 | `ui/` | [`feedback-states`](./ui/feedback-states/) | 操作反馈模式库 | 加载骨架、Toast、乐观更新、空状态、错误重试、按钮忙态、危险确认/滑满确认、页顶 Banner、Undo 倒计时 |
 
 ## 安装到 Cursor
