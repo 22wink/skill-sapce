@@ -39,7 +39,7 @@ description: >-
 ## 组件清单（原文规格）
 
 | # | 组件 | 规格（必须守住） |
-|---|------|------------------|
+| --- | ------ | ------------------ |
 | 1 | Overlap stack | 做一个重叠排列组件，元素互相压住三分之一，末尾显示剩余数量，点击后依次散开并显示名称，再次点击收回 |
 | 2 | Fill progress | 用组件背景的填充宽度表示完成进度，勾选一项时填充平滑前推，完成时整个组件轻微提亮 |
 | 3 | H-accordion | 做一个横向手风琴组件。默认等宽窄条，点击某条展开变宽显示详细，其余同步收窄，内容延迟淡入 |
@@ -66,7 +66,7 @@ Micro Interactions Progress:
 ### 输入模型
 
 | Platform | Rule |
-|----------|------|
+| ---------- | ------ |
 | Mobile | 以 touch 为主；Magnify / Pull / Swipe / Hold ring 必须跟手；避免依赖 hover |
 | Web | pointer + keyboard；Shared element 可用 View Transitions 或 FLIP |
 | Desktop | 同 Web；Swipe 可用拖拽；Hold ring 按住鼠标左键等价长按 |
@@ -74,7 +74,7 @@ Micro Interactions Progress:
 ### 动效默认值（可调，勿删缓动）
 
 | Token | Default |
-|-------|---------|
+| ------- | --------- |
 | expand / collapse | `220–320ms`，`ease-out` |
 | stagger（依次散开） | 每项间隔 `40–70ms` |
 | content fade-in delay | 展开宽度完成后再 `80–120ms` |

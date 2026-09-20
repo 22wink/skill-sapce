@@ -36,7 +36,7 @@ description: >-
 ## 模式清单
 
 | # | 模式 | 一句话 |
-|---|------|--------|
+| --- | ------ | -------- |
 | 1 | Button busy | 点击后按钮进入忙态并防重复提交 |
 | 2 | Skeleton / loading | 用结构占位表达「内容将在此」，而非只转圈 |
 | 3 | Optimistic update | 先改 UI，失败再回滚并说明 |
@@ -65,7 +65,7 @@ Feedback States Progress:
 ### 选型速查
 
 | 场景 | 推荐组合 |
-|------|----------|
+| ------ | ---------- |
 | 表单提交 | Button busy + 成功 Toast 或页内成功态；失败 Inline / Toast |
 | 列表首屏 | Skeleton；空 → Empty；失败 → Error+retry |
 | 点赞/收藏/开关 | Optimistic + 失败 Toast 回滚 |
@@ -78,7 +78,7 @@ Feedback States Progress:
 ### 时机默认值
 
 | Token | Default |
-|-------|---------|
+| ------- | --------- |
 | 按钮 busy 最短展示 | `300–400ms`（防闪烁） |
 | Skeleton 出现延迟 | 超过 `150–200ms` 再显示（即时返回则不闪） |
 | Toast 自动消失 | 成功 `2.5–3.5s`；错误 `4–6s` 或手动关 |
