@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Micro Interactions — 九组件演示</title>
+  <style>
+    :root {
+      --bg: #e8ebe6;
+      --ink: #1a1f1c;
+      --muted: #5c675f;
+      --surface: #f7f8f5;
+      --surface-2: #eef1ec;
+      --tray: #d5dad3;
+      --accent: #0f766e;
+      --accent-soft: rgba(15, 118, 110, 0.22);
+      --line: rgba(26, 31, 28, 0.08);
+      --shadow: 0 10px 28px rgba(26, 31, 28, 0.08);
+      --radius: 20px;
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --dur: 280ms;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dfe8e2 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #dde4da 0%, transparent 50%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 80px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 52ch;
+      line-height: 1.55;
+    }
+
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 32px;
+    }
+    .toc a {
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+    .demo-block {
+      margin-bottom: 36px;
+      scroll-margin-top: 20px;
+    }
+    .demo-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .demo-head h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+    .demo-head span {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+    .hint {
+      margin: 0 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .stage {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* —— 1. Overlap stack —— */
+    .overlap {
+      --size: 56px;
+      --overlap: calc(var(--size) / 3);
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-height: 84px;
+      cursor: pointer;
+      user-select: none;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .overlap-item {
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 16px;
+      border: 2px solid #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      transition:
+        transform var(--dur) var(--ease),
+        margin var(--dur) var(--ease),
+        width var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease);
+      will-change: transform, margin;
+    }
+    .overlap:not(.is-expanded) .overlap-item + .overlap-item {
+      margin-left: calc(var(--overlap) * -1);
+    }
+    .overlap-item .name {
+      position: absolute;
+      left: 50%;
+      bottom: -22px;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      white-space:nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+    .overlap.is-expanded {
+      gap: 14px;
+      padding-bottom: 26px;
+    }
+    .overlap.is-expanded .overlap-item {
+      margin-left: 0 !important;
+      box-shadow: 0 8px 18px rgba(26, 31, 28, 0.12);
+    }
+    .overlap.is-expanded .overlap-item .name { opacity: 1; transition-delay: 40ms; }
+    .overlap-more {
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 16px;
+      background: #2f3632;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      border: 2px solid #fff;
+      flex-shrink: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+    .overlap:not(.is-expanded) .overlap-more {
+      margin-left: calc(var(--overlap) * -1);
+    }
+    .overlap.is-expanded .overlap-more {
+      opacity: 0;
+      transform: scale(0.6);
+      width: 0;
+      margin: 0;
+      border: 0;
+      pointer-events: none;
+    }
+
+    /* —— 2. Fill progress —— */
+    .fill-card {
+      position: relative;
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      transition: filter 200ms ease, box-shadow 200ms ease;
+    }
+    .fill-card.is-complete {
+      filter: brightness(1.06);
+      box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.35), 0 12px 28px rgba(15, 118, 110, 0.12);
+    }
+    .fill-layer {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: var(--accent-soft);
+      pointer-events: none;
+      transition: width 340ms ease-in-out;
+      z-index: 0;
+    }
+    .fill-body {
+      position: relative;
+      z-index: 1;
+      padding: 16px 18px;
+    }
+    .fill-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .fill-meta strong { color: var(--ink); font-size: 15px; }
+    .fill-list { display: grid; gap: 8px; }
+    .fill-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+    }
+    .fill-item input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    /* —— 3. H-accordion —— */
+    .h-acc {
+      display: flex;
+      gap: 8px;
+      height: 180px;
+      width: 100%;
+    }
+    .h-acc-panel {
+      flex: 1 1 0;
+      min-width: 0;
+      border-radius: 16px;
+      background: #1f2925;
+      color: #f3f6f3;
+      padding: 14px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: flex-grow 280ms var(--ease);
+      display: flex;
+      flex-direction: column;
+      outline: none;
+    }
+    .h-acc-panel.is-narrow { flex-grow: 0.55; }
+    .h-acc-panel.is-wide { flex-grow: 3.2; }
+    .h-acc-panel:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+    .h-acc-title {
+      font-weight: 700;
+      font-size: 14px;
+      writing-mode: horizontal-tb;
+      white-space: nowrap;
+    }
+    .h-acc-panel.is-narrow .h-acc-title {
+      writing-mode: vertical-rl;
+      letter-spacing: 0.12em;
+      margin: auto;
+    }
+    .h-acc-detail {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 200ms ease, transform 200ms ease;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(243, 246, 243, 0.85);
+      pointer-events: none;
+    }
+    .h-acc-panel.is-wide.is-content-visible .h-acc-detail {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+    .h-acc-panel.is-narrow .h-acc-detail { display: none; }
+    .h-acc-panel:nth-child(1) { background: #1f2925; }
+    .h-acc-panel:nth-child(2) { background: #24352f; }
+    .h-acc-panel:nth-child(3) { background: #2a4038; }
+    .h-acc-panel:nth-child(4) { background: #315248; }
+
+    /* —— 4. Under tray —— */
+    .tray-wrap {
+      position: relative;
+      width: min(420px, 100%);
+      margin-inline: auto;
+    }
+    .tray-main {
+      position: relative;
+      z-index: 2;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow);
+    }
+    .tray-main h3 { margin: 0 0 6px; font-size: 16px; }
+    .tray-main p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .tray-main .btn {
+      margin-top: 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .tray-sheet {
+      position: relative;
+      z-index: 1;
+      margin: -10px 6px 0;
+      background: var(--tray);
+      border-radius: 0 0 18px 18px;
+      overflow: hidden;
+      transition: max-height 260ms var(--ease);
+      max-height: 44px;
+    }
+    .tray-wrap.is-open .tray-sheet { max-height: 220px; }
+    .tray-peek, .tray-details {
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #3a433d;
+    }
+    .tray-peek {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 44px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tray-details {
+      border-top: 1px solid rgba(26, 31, 28, 0.08);
+      display: grid;
+      gap: 8px;
+      padding-top: 10px;
+      padding-bottom: 16px;
+    }
+    .tray-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .tray-row span:last-child { font-weight: 600; color: var(--ink); }
+
+    /* —— 5. Magnify dock —— */
+    .dock-stage {
+      display: grid;
+      place-items: center;
+      min-height: 160px;
+      touch-action: none;
+      user-select: none;
+    }
+    .dock {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0;
+      height: 96px;
+      padding: 0 12px 8px;
+      outline: none;
+    }
+    .dock-item {
+      width: 52px;
+      height: 52px;
+      margin: 0 4px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 6px 14px rgba(26, 31, 28, 0.08);
+      transform-origin: bottom center;
+      transition: transform 180ms var(--ease), margin 180ms var(--ease), box-shadow 180ms ease;
+      position: relative;
+    }
+    .dock.is-tracking .dock-item { transition: none; }
+    .dock-item.is-selected {
+      box-shadow: 0 0 0 2px var(--accent), 0 10px 18px rgba(15, 118, 110, 0.18);
+    }
+    .dock-item .dock-label {
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+    .dock-item.is-selected .dock-label { opacity: 1; color: var(--accent); font-weight: 600; }
+    .dock-selected-text {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* —— 6. Pull summary —— */
+    .pull-demo {
+      position: relative;
+      border-radius: calc(var(--radius) + 2px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #f4f6f3;
+      min-height: 320px;
+    }
+    .pull-chrome {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      justify-content: center;
+      padding: 14px 14px 0;
+      touch-action: none;
+    }
+    .pull-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 6px 16px rgba(26, 31, 28, 0.08);
+      cursor: grab;
+      user-select: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .pull-capsule:active { cursor: grabbing; }
+    .pull-capsule .chev {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform 200ms ease;
+    }
+    .pull-demo.is-expanded .pull-capsule .chev { transform: rotate(180deg); }
+    .pull-panel {
+      position: relative;
+      z-index: 3;
+      margin: 10px 14px 0;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      height: 0;
+      opacity: 0.96;
+      will-change: height;
+    }
+    .pull-panel-inner {
+      padding: 16px;
+    }
+    .pull-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .pull-stat {
+      background: var(--surface-2);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .pull-stat b {
+      display: block;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .pull-stat span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pull-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: rgba(26, 31, 28, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: none;
+    }
+    .pull-demo.is-expanded .pull-mask,
+    .pull-demo.is-pulling .pull-mask {
+      pointer-events: auto;
+    }
+    .pull-content {
+      position: relative;
+      z-index: 1;
+      padding: 18px 16px 20px;
+    }
+    .pull-content h3 { margin: 8px 0 8px; font-size: 15px; }
+    .pull-content p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .fake-cards {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .fake-card {
+      height: 44px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    /* —— 7. Swipe dismiss —— */
+    .swipe-list { display: grid; gap: 10px; }
+    .swipe-slot {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fecaca;
+    }
+    .swipe-slot::before {
+      content: "删除";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7f1d1d;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .swipe-card {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 64px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      touch-action: pan-y;
+      user-select: none;
+      cursor: grab;
+    }
+    .swipe-card:active { cursor: grabbing; }
+    .swipe-card strong { display: block; font-size: 14px; }
+    .swipe-card span { font-size: 12px; color: var(--muted); }
+    .swipe-undo {
+      display: none;
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #1f2925;
+      color: #f3f6f3;
+      font-size: 13px;
+    }
+    .swipe-undo.is-on { display: block; }
+    .swipe-undo-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .swipe-undo button {
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      color: #fff;
+      padding: 6px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .swipe-undo .bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.2);
+      overflow: hidden;
+    }
+    .swipe-undo .bar > i {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: #5eead4;
+      border-radius: inherit;
+    }
+
+    /* —— 8. Shared element —— */
+    .shared-shell {
+      position: relative;
+      min-height: 280px;
+    }
+    .shared-list { display: grid; gap: 10px; }
+    .shared-item {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      width: 100%;
+    }
+    .shared-cover {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .shared-item .shared-title { font-weight: 700; font-size: 14px; }
+    .shared-item .shared-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .shared-detail {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .shared-shell.is-detail .shared-list { display: none; }
+    .shared-shell.is-detail .shared-detail { display: flex; }
+    .shared-detail-hero {
+      border-radius: 20px;
+      min-height: 140px;
+      display: grid;
+      place-items: end start;
+      padding: 16px;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .shared-detail-body {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 200ms ease, transform 200ms ease;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .shared-detail-body.is-in {
+      opacity: 1;
+      transform: none;
+    }
+    .shared-back {
+      align-self: start;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .shared-ghost {
+      position: fixed;
+      z-index: 40;
+      pointer-events: none;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      transition: none;
+      will-change: left, top, width, height, border-radius;
+    }
+    .shared-ghost.is-animating {
+      transition:
+        left 360ms var(--ease),
+        top 360ms var(--ease),
+        width 360ms var(--ease),
+        height 360ms var(--ease),
+        border-radius 360ms var(--ease);
+    }
+
+    /* —— 9. Hold ring —— */
+    .hold-wrap {
+      display: grid;
+      place-items: center;
+      gap: 14px;
+      min-height: 160px;
+    }
+    .hold-btn {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 0;
+      background: #fff;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      touch-action: none;
+      user-select: none;
+      color: var(--ink);
+    }
+    .hold-btn svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+      pointer-events: none;
+    }
+    .hold-btn .track {
+      fill: none;
+      stroke: #e5e9e3;
+      stroke-width: 6;
+    }
+    .hold-btn .prog {
+      fill: none;
+      stroke: #ef4444;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+    }
+    .hold-btn.is-done {
+      background: #fee2e2;
+    }
+    .hold-hint { font-size: 13px; color: var(--muted); text-align: center; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .overlap-item,
+      .overlap-more,
+      .fill-layer,
+      .h-acc-panel,
+      .h-acc-detail,
+      .tray-sheet,
+      .dock-item,
+      .pull-capsule .chev,
+      .shared-detail-body,
+      .shared-ghost.is-animating {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>Micro Interactions</h1>
+      <p>基于 <code>ui/micro-interactions</code> skill 的九组件 HTML 演示。可直接点击 / 拖拽 / 长按体验；移动端支持触摸跟手。</p>
+    </header>
+
+    <nav class="toc" aria-label="组件导航">
+      <a href="#c1">1. Overlap</a>
+      <a href="#c2">2. Fill progress</a>
+      <a href="#c3">3. H-accordion</a>
+      <a href="#c4">4. Under tray</a>
+      <a href="#c5">5. Magnify dock</a>
+      <a href="#c6">6. Pull summary</a>
+      <a href="#c7">7. Swipe</a>
+      <a href="#c8">8. Shared</a>
+      <a href="#c9">9. Hold ring</a>
+    </nav>
+
+    <!-- 1 -->
+    <section class="demo-block" id="c1">
+      <div class="demo-head">
+        <h2>1. Overlap stack</h2>
+        <span>重叠 1/3 · +N · 散开显示名称</span>
+      </div>
+      <p class="hint">点击整组：依次散开并显示名称；再次点击收回。</p>
+      <div class="stage">
+        <div class="overlap" id="overlap" role="button" tabindex="0" aria-expanded="false" aria-label="重叠成员列表，点击展开或收回"></div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="demo-block" id="c2">
+      <div class="demo-head">
+        <h2>2. Fill progress</h2>
+        <span>背景填充宽度 = 进度</span>
+      </div>
+      <p class="hint">勾选任务，底色填充平滑前推；全部完成时整卡轻微提亮。</p>
+      <div class="stage">
+        <div class="fill-card" id="fillCard">
+          <div class="fill-layer" id="fillLayer"></div>
+          <div class="fill-body">
+            <div class="fill-meta">
+              <strong>发版检查清单</strong>
+              <span id="fillPercent">0%</span>
+            </div>
+            <div class="fill-list" id="fillList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="demo-block" id="c3">
+      <div class="demo-head">
+        <h2>3. H-accordion</h2>
+        <span>等宽窄条 · 展开变宽 · 内容延迟淡入</span>
+      </div>
+      <p class="hint">点击某一条展开；其余同步收窄。再点当前条可全部收回。</p>
+      <div class="stage">
+        <div class="h-acc" id="hAcc" role="tablist" aria-label="横向手风琴"></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="demo-block" id="c4">
+      <div class="demo-head">
+        <h2>4. Under tray</h2>
+        <span>下方托盘 · 主卡不动</span>
+      </div>
+      <p class="hint">点击主卡按钮或托盘行：托盘向下展开明细，主组件位置保持不动。</p>
+      <div class="stage">
+        <div class="tray-wrap" id="trayWrap">
+          <div class="tray-main">
+            <h3>订单 #A2048</h3>
+            <p>杭州仓 → 上海浦东 · 预计今日 18:00 送达</p>
+            <button type="button" class="btn" id="trayToggle" aria-expanded="false">查看费用明细</button>
+          </div>
+          <div class="tray-sheet" id="traySheet">
+            <div class="tray-peek" id="trayPeek">
+              <span>费用摘要 · ¥42.50</span>
+              <span id="trayChevron">▾</span>
+            </div>
+            <div class="tray-details" id="trayDetails" hidden>
+              <div class="tray-row"><span>运费</span><span>¥28.00</span></div>
+              <div class="tray-row"><span>保价</span><span>¥6.50</span></div>
+              <div class="tray-row"><span>包装</span><span>¥5.00</span></div>
+              <div class="tray-row"><span>优惠</span><span>-¥0.00</span></div>
+              <div class="tray-row"><span>合计</span><span>¥42.50</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="demo-block" id="c5">
+      <div class="demo-head">
+        <h2>5. Magnify dock</h2>
+        <span>跟手缩放 · 相邻让位 · 松手选中</span>
+      </div>
+      <p class="hint">在图标排上滑动 / 移动指针；松手选中当前最近图标。也可用左右方向键。</p>
+      <div class="stage">
+        <div class="dock-stage" id="dockStage">
+          <div class="dock" id="dock" tabindex="0" role="listbox" aria-label="跟手放大图标排"></div>
+        </div>
+        <p class="dock-selected-text" id="dockSelectedText">当前选中：—</p>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="demo-block" id="c6">
+      <div class="demo-head">
+        <h2>6. Pull summary</h2>
+        <span>胶囊下拉 · 跟手展开 · 下方变暗</span>
+      </div>
+      <p class="hint">按住胶囊向下拉，面板跟手展开，下方内容同步变暗；超过阈值松手即展开，点击遮罩可收回。</p>
+      <div class="stage" style="padding:0">
+        <div class="pull-demo" id="pullDemo">
+          <div class="pull-chrome">
+            <div class="pull-capsule" id="pullCapsule" role="button" tabindex="0" aria-expanded="false">
+              <span>今日概览 · 128 单</span>
+              <span class="chev">▾</span>
+            </div>
+          </div>
+          <div class="pull-panel" id="pullPanel" aria-hidden="true">
+            <div class="pull-panel-inner">
+              <div class="pull-stats">
+                <div class="pull-stat"><b>128</b><span>已完成</span></div>
+                <div class="pull-stat"><b>17</b><span>配送中</span></div>
+                <div class="pull-stat"><b>96%</b><span>准时率</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="pull-mask" id="pullMask"></div>
+          <div class="pull-content">
+            <h3>下方页面内容</h3>
+            <p>下拉摘要时，这一层会随进度变暗。展开后可点击遮罩或再次上推/点击胶囊收回。</p>
+            <div class="fake-cards">
+              <div class="fake-card"></div>
+              <div class="fake-card"></div>
+              <div class="fake-card"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="demo-block" id="c7">
+      <div class="demo-head">
+        <h2>7. Swipe dismiss</h2>
+        <span>左滑飞出 · 回弹 · Undo</span>
+      </div>
+      <p class="hint">按住卡片左滑：过阈值或甩得够快则飞出删除，底部出现限时撤销；未达标回弹。</p>
+      <div class="stage">
+        <div class="swipe-list" id="swipeList"></div>
+        <div class="swipe-undo" id="swipeUndo">
+          <div class="swipe-undo-top">
+            <span id="swipeUndoText">已删除</span>
+            <button type="button" id="swipeUndoBtn">撤销</button>
+          </div>
+          <div class="bar"><i id="swipeUndoBar"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="demo-block" id="c8">
+      <div class="demo-head">
+        <h2>8. Shared element</h2>
+        <span>列表封面 morph → 详情</span>
+      </div>
+      <p class="hint">点击列表项：封面从列表位变形到详情大图，正文延迟淡入；点返回原路收回。</p>
+      <div class="stage">
+        <div class="shared-shell" id="sharedShell">
+          <div class="shared-list" id="sharedList"></div>
+          <div class="shared-detail" id="sharedDetail">
+            <button type="button" class="shared-back" id="sharedBack">← 返回列表</button>
+            <div class="shared-detail-hero" id="sharedHero"></div>
+            <div class="shared-detail-body" id="sharedBody"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="demo-block" id="c9">
+      <div class="demo-head">
+        <h2>9. Hold ring</h2>
+        <span>长按走满确认 · 未满回零</span>
+      </div>
+      <p class="hint">按住按钮约 1 秒，圆环走满才删除；中途松手回零，不触发。</p>
+      <div class="stage">
+        <div class="hold-wrap">
+          <button type="button" class="hold-btn" id="holdBtn" aria-label="长按确认删除">
+            <svg viewBox="0 0 88 88" aria-hidden="true">
+              <circle class="track" cx="44" cy="44" r="40"></circle>
+              <circle class="prog" id="holdProg" cx="44" cy="44" r="40"></circle>
+            </svg>
+            <span id="holdIcon">🗑</span>
+          </button>
+          <div class="hold-hint" id="holdHint">按住以确认删除</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* ========== 1. Overlap stack ========== */
+    (function initOverlap() {
+      const root = document.getElementById("overlap");
+      const people = [
+        { name: "Ada", color: "#0f766e" },
+        { name: "Ben", color: "#b45309" },
+        { name: "Chris", color: "#1d4ed8" },
+        { name: "Dana", color: "#be123c" },
+        { name: "Eve", color: "#7c3aed" },
+        { name: "Finn", color: "#0f766e" },
+      ];
+      const maxVisible = 3;
+      let expanded = false;
+
+      people.forEach((p, i) => {
+        const el = document.createElement("div");
+        el.className = "overlap-item";
+        el.style.background = p.color;
+        el.style.zIndex = String(i + 1);
+        el.innerHTML = `<span>${p.name[0]}</span><span class="name">${p.name}</span>`;
+        el.hidden = !expanded && i >= maxVisible;
+        root.appendChild(el);
+      });
+      const more = document.createElement("div");
+      more.className = "overlap-more";
+      more.textContent = `+${people.length - maxVisible}`;
+      more.style.zIndex = String(maxVisible + 1);
+      root.appendChild(more);
+
+      function render() {
+        const items = [...root.querySelectorAll(".overlap-item")];
+        items.forEach((el, i) => {
+          el.hidden = !expanded && i >= maxVisible;
+          if (expanded) {
+            const delay = reduceMotion ? 0 : i * 55;
+            el.style.transitionDelay = `${delay}ms`;
+            el.querySelector(".name").style.transitionDelay = `${delay + 40}ms`;
+          } else {
+            const delay = reduceMotion ? 0 : (items.length - 1 - i) * 35;
+            el.style.transitionDelay = `${delay}ms`;
+            el.querySelector(".name").style.transitionDelay = "0ms";
+          }
+        });
+        more.hidden = expanded || people.length <= maxVisible;
+        more.textContent = `+${people.length - maxVisible}`;
+        root.classList.toggle("is-expanded", expanded);
+        root.setAttribute("aria-expanded", String(expanded));
+      }
+
+      function toggle() {
+        expanded = !expanded;
+        render();
+      }
+
+      root.addEventListener("click", toggle);
+      root.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      });
+      render();
+    })();
+
+    /* ========== 2. Fill progress ========== */
+    (function initFill() {
+      const tasks = ["代码审查通过", "冒烟测试通过", "变更文档已更新", "发布窗口已确认"];
+      const list = document.getElementById("fillList");
+      const layer = document.getElementById("fillLayer");
+      const card = document.getElementById("fillCard");
+      const percent = document.getElementById("fillPercent");
+
+      tasks.forEach((label, i) => {
+        const row = document.createElement("label");
+        row.className = "fill-item";
+        row.innerHTML = `<input type="checkbox" data-i="${i}" /><span>${label}</span>`;
+        list.appendChild(row);
+      });
+
+      function update() {
+        const boxes = [...list.querySelectorAll("input")];
+        const done = boxes.filter((b) => b.checked).length;
+        const ratio = done / boxes.length;
+        layer.style.width = `${ratio * 100}%`;
+        percent.textContent = `${Math.round(ratio * 100)}%`;
+        card.classList.toggle("is-complete", done === boxes.length);
+      }
+
+      list.addEventListener("change", update);
+      update();
+    })();
+
+    /* ========== 3. H-accordion ========== */
+    (function initAccordion() {
+      const root = document.getElementById("hAcc");
+      const panels = [
+        { title: "Overview", detail: "总览今日运力与异常单。支持按仓过滤，适合早会快速对齐。" },
+        { title: "Routing", detail: "线路热力与拥堵段。点击节点可下钻到具体骑手轨迹。" },
+        { title: "Inventory", detail: "库存水位与补货建议。低于阈值的 SKU 会高亮。" },
+        { title: "Support", detail: "客诉队列与 SLA。可一键转派值班同学。" },
+      ];
+      let active = -1;
+      let fadeTimer = null;
+
+      panels.forEach((p, i) => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "h-acc-panel";
+        el.setAttribute("role", "tab");
+        el.setAttribute("aria-expanded", "false");
+        el.innerHTML = `<div class="h-acc-title">${p.title}</div><div class="h-acc-detail">${p.detail}</div>`;
+        el.addEventListener("click", () => select(i));
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            root.children[(i + 1) % panels.length].focus();
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            root.children[(i - 1 + panels.length) % panels.length].focus();
+          }
+        });
+        root.appendChild(el);
+      });
+
+      function select(i) {
+        clearTimeout(fadeTimer);
+        const next = active === i ? -1 : i;
+        active = next;
+        [...root.children].forEach((el, idx) => {
+          el.classList.remove("is-wide", "is-narrow", "is-content-visible");
+          if (active < 0) {
+            el.setAttribute("aria-expanded", "false");
+            return;
+          }
+          const wide = idx === active;
+          el.classList.add(wide ? "is-wide" : "is-narrow");
+          el.setAttribute("aria-expanded", String(wide));
+        });
+        if (active >= 0) {
+          const wideEl = root.children[active];
+          const delay = reduceMotion ? 0 : 280 + 100;
+          fadeTimer = setTimeout(() => {
+            wideEl.classList.add("is-content-visible");
+          }, delay);
+        }
+      }
+    })();
+
+    /* ========== 4. Under tray ========== */
+    (function initTray() {
+      const wrap = document.getElementById("trayWrap");
+      const btn = document.getElementById("trayToggle");
+      const peek = document.getElementById("trayPeek");
+      const details = document.getElementById("trayDetails");
+      const chevron = document.getElementById("trayChevron");
+      let open = false;
+
+      function setOpen(v) {
+        open = v;
+        wrap.classList.toggle("is-open", open);
+        details.hidden = !open;
+        btn.setAttribute("aria-expanded", String(open));
+        btn.textContent = open ? "收起费用明细" : "查看费用明细";
+        chevron.textContent = open ? "▴" : "▾";
+      }
+
+      btn.addEventListener("click", () => setOpen(!open));
+      peek.addEventListener("click", () => setOpen(!open));
+    })();
+
+    /* ========== 5. Magnify dock ========== */
+    (function initDock() {
+      const dock = document.getElementById("dock");
+      const stage = document.getElementById("dockStage");
+      const selectedText = document.getElementById("dockSelectedText");
+      const icons = [
+        { emoji: "🏠", label: "Home" },
+        { emoji: "🔍", label: "Search" },
+        { emoji: "💬", label: "Chat" },
+        { emoji: "📦", label: "Orders" },
+        { emoji: "⭐", label: "Star" },
+        { emoji: "👤", label: "Profile" },
+      ];
+      const base = 52;
+      const maxScale = 1.85;
+      const radius = 120;
+      let selected = 2;
+      let tracking = false;
+
+      icons.forEach((icon, i) => {
+        const el = document.createElement("div");
+        el.className = "dock-item";
+        el.setAttribute("role", "option");
+        el.dataset.index = String(i);
+        el.innerHTML = `${icon.emoji}<span class="dock-label">${icon.label}</span>`;
+        dock.appendChild(el);
+      });
+
+      const items = [...dock.querySelectorAll(".dock-item")];
+
+      function setSelected(i) {
+        selected = i;
+        items.forEach((el, idx) => el.classList.toggle("is-selected", idx === selected));
+        selectedText.textContent = `当前选中：${icons[selected].label}`;
+      }
+
+      function resetScales(animate = true) {
+        dock.classList.toggle("is-tracking", !animate && tracking);
+        items.forEach((el) => {
+          el.style.transform = "scale(1)";
+          el.style.marginLeft = "4px";
+          el.style.marginRight = "4px";
+        });
+      }
+
+      function applyAt(clientX) {
+        dock.classList.add("is-tracking");
+        const scales = items.map((el) => {
+          const rect = el.getBoundingClientRect();
+          const center = rect.left + rect.width / 2;
+          const dist = Math.abs(clientX - center);
+          const t = Math.max(0, 1 - dist / radius);
+          const eased = Math.cos((1 - t) * Math.PI / 2);
+          return 1 + (maxScale - 1) * eased;
+        });
+        items.forEach((el, i) => {
+          const s = scales[i];
+          const grow = ((s - 1) * base) / 2;
+          el.style.transform = `scale(${s})`;
+          el.style.marginLeft = `${4 + grow * 0.55}px`;
+          el.style.marginRight = `${4 + grow * 0.55}px`;
+        });
+        let best = 0;
+        let bestScale = -1;
+        scales.forEach((s, i) => {
+          if (s > bestScale) {
+            bestScale = s;
+            best = i;
+          }
+        });
+        return best;
+      }
+
+      function onPointerDown(e) {
+        tracking = true;
+        dock.setPointerCapture?.(e.pointerId);
+        applyAt(e.clientX);
+      }
+      function onPointerMove(e) {
+        if (!tracking && e.pointerType === "mouse" && e.buttons === 0) {
+          // 悬停预览
+          applyAt(e.clientX);
+          return;
+        }
+        if (!tracking) return;
+        applyAt(e.clientX);
+      }
+      function onPointerUp(e) {
+        if (!tracking && e.type === "pointerleave") {
+          resetScales(true);
+          return;
+        }
+        if (!tracking) return;
+        const best = applyAt(e.clientX);
+        tracking = false;
+        setSelected(best);
+        // settle
+        setTimeout(() => {
+          dock.classList.remove("is-tracking");
+          resetScales(true);
+          items[selected].style.transform = "scale(1.08)";
+        }, reduceMotion ? 0 : 40);
+      }
+
+      stage.addEventListener("pointerdown", onPointerDown);
+      stage.addEventListener("pointermove", onPointerMove);
+      stage.addEventListener("pointerup", onPointerUp);
+      stage.addEventListener("pointercancel", onPointerUp);
+      stage.addEventListener("pointerleave", () => {
+        if (!tracking) resetScales(true);
+      });
+
+      dock.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          setSelected((selected + 1) % icons.length);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          setSelected((selected - 1 + icons.length) % icons.length);
+        }
+      });
+
+      setSelected(selected);
+      resetScales(true);
+      items[selected].style.transform = "scale(1.08)";
+    })();
+
+    /* ========== 6. Pull summary ========== */
+    (function initPull() {
+      const demo = document.getElementById("pullDemo");
+      const capsule = document.getElementById("pullCapsule");
+      const panel = document.getElementById("pullPanel");
+      const mask = document.getElementById("pullMask");
+      const maxH = 132;
+      let progress = 0;
+      let dragging = false;
+      let startY = 0;
+      let startProgress = 0;
+
+      function setProgress(p, { animate = false } = {}) {
+        progress = Math.max(0, Math.min(1, p));
+        if (animate) {
+          panel.style.transition = `height ${reduceMotion ? 0 : 220}ms var(--ease)`;
+          mask.style.transition = `opacity ${reduceMotion ? 0 : 220}ms ease`;
+        } else {
+          panel.style.transition = "none";
+          mask.style.transition = "none";
+        }
+        panel.style.height = `${progress * maxH}px`;
+        mask.style.opacity = String(progress * 0.48);
+        const expanded = progress >= 0.98;
+        demo.classList.toggle("is-expanded", expanded);
+        demo.classList.toggle("is-pulling", dragging);
+        capsule.setAttribute("aria-expanded", String(expanded));
+        panel.setAttribute("aria-hidden", String(!expanded));
+      }
+
+      let moved = false;
+
+      function endDrag() {
+        if (!dragging) return;
+        dragging = false;
+        demo.classList.remove("is-pulling");
+        if (!moved) {
+          setProgress(progress > 0.5 ? 0 : 1, { animate: true });
+          return;
+        }
+        if (progress >= 0.45) setProgress(1, { animate: true });
+        else setProgress(0, { animate: true });
+      }
+
+      capsule.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        moved = false;
+        startY = e.clientY;
+        startProgress = progress;
+        capsule.setPointerCapture?.(e.pointerId);
+        demo.classList.add("is-pulling");
+      });
+      capsule.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const delta = e.clientY - startY;
+        if (Math.abs(delta) > 6) moved = true;
+        const next = startProgress + delta / maxH;
+        const clamped = next > 1 ? 1 + (next - 1) * 0.2 : next;
+        setProgress(Math.max(0, Math.min(1.08, clamped)));
+      });
+      capsule.addEventListener("pointerup", endDrag);
+      capsule.addEventListener("pointercancel", endDrag);
+
+      mask.addEventListener("click", () => setProgress(0, { animate: true }));
+
+      capsule.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setProgress(progress > 0.5 ? 0 : 1, { animate: true });
+        }
+      });
+
+      setProgress(0);
+    })();
+
+    /* ========== 7. Swipe dismiss ========== */
+    (function initSwipe() {
+      const list = document.getElementById("swipeList");
+      const undoEl = document.getElementById("swipeUndo");
+      const undoText = document.getElementById("swipeUndoText");
+      const undoBtn = document.getElementById("swipeUndoBtn");
+      const undoBar = document.getElementById("swipeUndoBar");
+      const UNDO_MS = reduceMotion ? 3000 : 6000;
+      let items = [
+        { id: "S1", title: "运单 #S1001", sub: "杭州 → 上海" },
+        { id: "S2", title: "运单 #S1002", sub: "深圳 → 广州" },
+        { id: "S3", title: "运单 #S1003", sub: "成都 → 西安" },
+      ];
+      let pending = null;
+      let raf = null;
+
+      function paint() {
+        list.innerHTML = "";
+        items.forEach((item) => {
+          const slot = document.createElement("div");
+          slot.className = "swipe-slot";
+          const card = document.createElement("div");
+          card.className = "swipe-card";
+          card.innerHTML = `<div><strong>${item.title}</strong><span>${item.sub}</span></div><span style="color:var(--muted);font-size:12px">左滑删除</span>`;
+          wire(card, item, slot);
+          slot.appendChild(card);
+          list.appendChild(slot);
+        });
+        if (!items.length) {
+          list.innerHTML = `<p class="hint" style="margin:0">列表已空。可用撤销恢复，或刷新页面重置。</p>`;
+        }
+      }
+
+      function clearPending(commit) {
+        if (!pending) return null;
+        clearTimeout(pending.timer);
+        cancelAnimationFrame(raf);
+        const saved = pending.item;
+        pending = null;
+        undoEl.classList.remove("is-on");
+        undoBar.style.width = "100%";
+        if (commit) {
+          /* 真正删除已在列表外，演示结束 */
+        }
+        return saved;
+      }
+
+      function startUndo(item) {
+        if (pending) clearPending(true);
+        const started = Date.now();
+        undoText.textContent = `已删除「${item.title}」· ${Math.ceil(UNDO_MS / 1000)}s 内可撤销`;
+        undoEl.classList.add("is-on");
+        undoBar.style.width = "100%";
+        const tick = () => {
+          if (!pending) return;
+          const left = 1 - (Date.now() - started) / UNDO_MS;
+          undoBar.style.width = `${Math.max(0, left * 100)}%`;
+          const sec = Math.max(0, Math.ceil((UNDO_MS - (Date.now() - started)) / 1000));
+          undoText.textContent = `已删除「${item.title}」· ${sec}s 内可撤销`;
+          if (left > 0) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        pending = {
+          item,
+          timer: setTimeout(() => clearPending(true), UNDO_MS),
+        };
+      }
+
+      function wire(card, item, slot) {
+        let startX = 0;
+        let startY = 0;
+        let x = 0;
+        let lastX = 0;
+        let lastT = 0;
+        let vx = 0;
+        let dragging = false;
+        let locked = null;
+
+        const width = () => slot.clientWidth || 320;
+
+        card.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          locked = null;
+          startX = e.clientX;
+          startY = e.clientY;
+          lastX = startX;
+          lastT = performance.now();
+          vx = 0;
+          card.setPointerCapture?.(e.pointerId);
+          card.style.transition = "none";
+        });
+        card.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (locked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+            locked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+          }
+          if (locked !== "x") return;
+          e.preventDefault();
+          x = Math.min(0, dx);
+          const now = performance.now();
+          const dt = Math.max(1, now - lastT);
+          vx = (e.clientX - lastX) / dt;
+          lastX = e.clientX;
+          lastT = now;
+          card.style.transform = `translateX(${x}px)`;
+        });
+        card.addEventListener("pointerup", () => {
+          if (!dragging) return;
+          dragging = false;
+          if (locked !== "x") {
+            card.style.transform = "";
+            return;
+          }
+          const w = width();
+          const passDist = Math.abs(x) > w * 0.38;
+          const passVel = vx < -0.7;
+          card.style.transition = reduceMotion ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+          if (passDist || passVel) {
+            card.style.transform = `translateX(${-w - 24}px)`;
+            setTimeout(() => {
+              items = items.filter((i) => i.id !== item.id);
+              paint();
+              startUndo(item);
+            }, reduceMotion ? 0 : 200);
+          } else {
+            card.style.transform = "translateX(0)";
+            x = 0;
+          }
+        });
+        card.addEventListener("pointercancel", () => {
+          dragging = false;
+          card.style.transition = reduceMotion ? "none" : "transform 220ms ease";
+          card.style.transform = "translateX(0)";
+        });
+      }
+
+      undoBtn.addEventListener("click", () => {
+        const item = clearPending(false);
+        if (!item) return;
+        items = [item, ...items];
+        paint();
+      });
+
+      paint();
+    })();
+
+    /* ========== 8. Shared element ========== */
+    (function initShared() {
+      const shell = document.getElementById("sharedShell");
+      const list = document.getElementById("sharedList");
+      const hero = document.getElementById("sharedHero");
+      const body = document.getElementById("sharedBody");
+      const back = document.getElementById("sharedBack");
+      const data = [
+        { id: "a", title: "西湖仓晚班", sub: "12 单进行中", color: "#0f766e", detail: "晚班运力充足。重点关注跨江线路拥堵，建议 19:00 前完成分拣。" },
+        { id: "b", title: "浦东枢纽", sub: "准时率 97%", color: "#1d4ed8", detail: "枢纽吞吐正常。今日异常签收 2 单，已转客服跟进。" },
+        { id: "c", title: "南山微仓", sub: "库存告警", color: "#b45309", detail: "3 个 SKU 低于安全库存，补货单已生成，预计明日到仓。" },
+      ];
+      let current = null;
+      let busy = false;
+
+      function paintList() {
+        list.innerHTML = "";
+        data.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "shared-item";
+          btn.dataset.id = item.id;
+          btn.innerHTML = `
+            <div class="shared-cover" style="background:${item.color}">${item.title.slice(0, 1)}</div>
+            <div>
+              <div class="shared-title">${item.title}</div>
+              <div class="shared-sub">${item.sub}</div>
+            </div>`;
+          btn.addEventListener("click", () => openDetail(item, btn));
+          list.appendChild(btn);
+        });
+      }
+
+      function morph(fromRect, toRect, color, text, onDone) {
+        if (reduceMotion) {
+          onDone();
+          return;
+        }
+        const ghost = document.createElement("div");
+        ghost.className = "shared-ghost";
+        ghost.textContent = text;
+        ghost.style.background = color;
+        ghost.style.left = fromRect.left + "px";
+        ghost.style.top = fromRect.top + "px";
+        ghost.style.width = fromRect.width + "px";
+        ghost.style.height = fromRect.height + "px";
+        ghost.style.borderRadius = "14px";
+        document.body.appendChild(ghost);
+        requestAnimationFrame(() => {
+          ghost.classList.add("is-animating");
+          ghost.style.left = toRect.left + "px";
+          ghost.style.top = toRect.top + "px";
+          ghost.style.width = toRect.width + "px";
+          ghost.style.height = toRect.height + "px";
+          ghost.style.borderRadius = "20px";
+        });
+        setTimeout(() => {
+          ghost.remove();
+          onDone();
+        }, 380);
+      }
+
+      function openDetail(item, btn) {
+        if (busy) return;
+        busy = true;
+        current = item;
+        const cover = btn.querySelector(".shared-cover");
+        const from = cover.getBoundingClientRect();
+
+        shell.classList.add("is-detail");
+        hero.style.background = item.color;
+        hero.textContent = item.title;
+        body.textContent = item.detail;
+        body.classList.remove("is-in");
+        hero.style.visibility = "hidden";
+
+        requestAnimationFrame(() => {
+          const to = hero.getBoundingClientRect();
+          morph(from, to, item.color, item.title.slice(0, 1), () => {
+            hero.style.visibility = "visible";
+            setTimeout(() => body.classList.add("is-in"), reduceMotion ? 0 : 100);
+            busy = false;
+          });
+        });
+      }
+
+      function closeDetail() {
+        if (busy || !current) return;
+        busy = true;
+        const item = current;
+        const listBtn = [...list.querySelectorAll(".shared-item")].find((el) => el.dataset.id === item.id);
+        body.classList.remove("is-in");
+        const from = hero.getBoundingClientRect();
+        hero.style.visibility = "hidden";
+
+        shell.classList.remove("is-detail");
+        paintList();
+        const targetBtn = [...list.querySelectorAll(".shared-item")].find((el) => el.dataset.id === item.id) || listBtn;
+        const cover = targetBtn.querySelector(".shared-cover");
+        cover.style.visibility = "hidden";
+        const to = cover.getBoundingClientRect();
+
+        morph(from, to, item.color, item.title.slice(0, 1), () => {
+          cover.style.visibility = "visible";
+          hero.style.visibility = "visible";
+          current = null;
+          busy = false;
+        });
+      }
+
+      back.addEventListener("click", closeDetail);
+      paintList();
+    })();
+
+    /* ========== 9. Hold ring ========== */
+    (function initHold() {
+      const btn = document.getElementById("holdBtn");
+      const prog = document.getElementById("holdProg");
+      const hint = document.getElementById("holdHint");
+      const icon = document.getElementById("holdIcon");
+      const CIRC = 2 * Math.PI * 40;
+      const DURATION = reduceMotion ? 450 : 1000;
+      let holding = false;
+      let raf = null;
+      let start = 0;
+      let progress = 0;
+      let startX = 0;
+      let startY = 0;
+
+      prog.style.strokeDasharray = String(CIRC);
+      prog.style.strokeDashoffset = String(CIRC);
+
+      function setProgress(p) {
+        progress = Math.max(0, Math.min(1, p));
+        prog.style.strokeDashoffset = String(CIRC * (1 - progress));
+      }
+
+      function cancelHold() {
+        holding = false;
+        cancelAnimationFrame(raf);
+        const from = progress;
+        const t0 = performance.now();
+        const anim = (now) => {
+          const t = Math.min(1, (now - t0) / (reduceMotion ? 80 : 200));
+          setProgress(from * (1 - t));
+          if (t < 1) raf = requestAnimationFrame(anim);
+          else hint.textContent = "按住以确认删除";
+        };
+        raf = requestAnimationFrame(anim);
+      }
+
+      function commit() {
+        holding = false;
+        setProgress(1);
+        btn.classList.add("is-done");
+        icon.textContent = "✓";
+        hint.textContent = "已确认删除";
+        setTimeout(() => {
+          btn.classList.remove("is-done");
+          icon.textContent = "🗑";
+          setProgress(0);
+          hint.textContent = "按住以确认删除";
+        }, 1400);
+      }
+
+      function tick(now) {
+        if (!holding) return;
+        const p = (now - start) / DURATION;
+        setProgress(p);
+        hint.textContent = p >= 1 ? "即将确认…" : `蓄力中 ${Math.round(p * 100)}%`;
+        if (p >= 1) {
+          commit();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      }
+
+      btn.addEventListener("pointerdown", (e) => {
+        holding = true;
+        start = performance.now();
+        startX = e.clientX;
+        startY = e.clientY;
+        btn.setPointerCapture?.(e.pointerId);
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(tick);
+      });
+      btn.addEventListener("pointermove", (e) => {
+        if (!holding) return;
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) cancelHold();
+      });
+      btn.addEventListener("pointerup", () => {
+        if (!holding) return;
+        if (progress >= 1) return;
+        cancelHold();
+      });
+      btn.addEventListener("pointercancel", () => {
+        if (holding) cancelHold();
+      });
+      btn.addEventListener("pointerleave", () => {
+        if (holding) cancelHold();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback States — 操作反馈演示</title>
+  <style>
+    :root {
+      --bg: #e9ece8;
+      --ink: #1a1f1c;
+      --muted: #5c675f;
+      --surface: #f7f8f5;
+      --surface-2: #eef1ec;
+      --line: rgba(26, 31, 28, 0.09);
+      --accent: #0f766e;
+      --ok: #15803d;
+      --ok-bg: #dcfce7;
+      --err: #b91c1c;
+      --err-bg: #fee2e2;
+      --warn: #b45309;
+      --shadow: 0 10px 28px rgba(26, 31, 28, 0.08);
+      --radius: 18px;
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(1100px 520px at 0% -10%, #dce5df 0%, transparent 55%),
+        radial-gradient(900px 480px at 100% 0%, #d9e0d8 0%, transparent 50%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 100px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.55rem, 3vw, 2rem);
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 56ch;
+    }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 28px;
+    }
+    .toc a {
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .toc a:hover { color: var(--accent); border-color: var(--accent); }
+
+    .block {
+      margin-bottom: 32px;
+      scroll-margin-top: 16px;
+    }
+    .head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .head h2 { margin: 0; font-size: 1.05rem; }
+    .head code {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .hint {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .stage {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    button, .btn {
+      font: inherit;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      min-height: 44px;
+      cursor: pointer;
+      background: var(--ink);
+      color: #fff;
+    }
+    button.secondary, .btn.secondary {
+      background: var(--surface-2);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    button:disabled, .btn.is-busy {
+      opacity: 0.72;
+      cursor: not-allowed;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid transparent;
+      min-height: 36px;
+      padding: 6px 10px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      display: inline-block;
+      animation: spin .7s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    .btn.is-busy .spinner { display: inline-block; }
+    .btn .spinner { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast host */
+    .toast-host {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 50;
+      display: grid;
+      gap: 8px;
+      width: min(360px, calc(100% - 32px));
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #1f2925;
+      color: #f3f6f3;
+      box-shadow: var(--shadow);
+      animation: toast-in 220ms var(--ease);
+    }
+    .toast.ok { background: #14532d; }
+    .toast.err { background: #7f1d1d; }
+    .toast .body { flex: 1; font-size: 13px; line-height: 1.4; }
+    .toast .actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .toast .actions button {
+      min-height: 32px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,.14);
+      font-size: 12px;
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* Skeleton */
+    .skel-list { display: grid; gap: 10px; }
+    .skel-row, .data-row {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+    }
+    .skel-avatar, .skel-line {
+      background: linear-gradient(90deg, #dde3dc 25%, #ecefeb 50%, #dde3dc 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s linear infinite;
+      border-radius: 8px;
+    }
+    .skel-avatar { width: 44px; height: 44px; border-radius: 50%; }
+    .skel-lines { display: grid; gap: 8px; }
+    .skel-line { height: 10px; }
+    .skel-line.w60 { width: 60%; }
+    .skel-line.w90 { width: 90%; }
+    .skel-line.w40 { width: 40%; height: 8px; }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: grid; place-items: center;
+      color: #fff; font-weight: 700; font-size: 14px;
+    }
+    .meta strong { display: block; font-size: 14px; }
+    .meta span { font-size: 12px; color: var(--muted); }
+    .slot { min-height: 168px; }
+
+    /* Optimistic */
+    .star-list { display: grid; gap: 8px; }
+    .star-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+    }
+    .star-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-size: 18px;
+      padding: 0;
+    }
+    .star-btn.on { color: #ca8a04; background: #fef9c3; border-color: #fde047; }
+
+    /* Empty / Error */
+    .panel-state {
+      min-height: 200px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 24px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px dashed var(--line);
+    }
+    .panel-state h3 { margin: 0 0 8px; font-size: 16px; }
+    .panel-state p { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 36ch; }
+    .panel-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .icon-lg { font-size: 28px; margin-bottom: 8px; }
+
+    /* Inline */
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .field label { font-size: 13px; font-weight: 600; }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .field input {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
+    .field input.is-invalid {
+      border-color: var(--err);
+      background: #fff8f8;
+    }
+    .field-msg {
+      font-size: 12px;
+      min-height: 18px;
+      color: var(--muted);
+    }
+    .field-msg.ok { color: var(--ok); }
+    .field-msg.err { color: var(--err); }
+
+    /* Progress */
+    .progress-card {
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: 16px;
+    }
+    .progress-card h3 { margin: 0 0 6px; font-size: 15px; }
+    .progress-card .sub { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #d8ddd6;
+      overflow: hidden;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: inherit;
+      transition: width 120ms linear;
+    }
+    .progress-actions { margin-top: 14px; display: flex; gap: 8px; }
+
+    /* Confirm modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 31, 28, 0.45);
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .modal-backdrop[hidden] { display: none !important; }
+    .modal {
+      width: min(400px, 100%);
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+    }
+    .modal h3 { margin: 0 0 8px; font-size: 17px; }
+    .modal p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    button.danger {
+      background: var(--err);
+    }
+
+    /* Slide to confirm */
+    .slide-confirm {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .slide-confirm h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+    .slide-track {
+      position: relative;
+      height: 52px;
+      border-radius: 999px;
+      background: #e8ece6;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      margin-top: 10px;
+    }
+    .slide-track.is-armed {
+      background: #fecaca;
+      border-color: #f87171;
+    }
+    .slide-track.is-done {
+      background: #fecaca;
+      pointer-events: none;
+    }
+    .slide-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: linear-gradient(90deg, #fca5a5, #ef4444);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    .slide-label {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 1;
+      padding-left: 44px;
+    }
+    .slide-track.is-armed .slide-label,
+    .slide-track.is-done .slide-label {
+      color: #7f1d1d;
+    }
+    .slide-thumb {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 12px rgba(26, 31, 28, 0.14);
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      color: var(--err);
+      cursor: grab;
+      will-change: transform;
+    }
+    .slide-thumb:active { cursor: grabbing; }
+    .slide-track.is-snapping .slide-thumb,
+    .slide-track.is-snapping .slide-fill {
+      transition: transform 240ms var(--ease), width 240ms var(--ease);
+    }
+
+    /* Banner */
+    .banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .banner.warn {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #9a3412;
+    }
+    .banner.critical {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    .banner.info {
+      background: #ecfeff;
+      border-color: #67e8f9;
+      color: #155e75;
+    }
+    .banner .banner-body { flex: 1; }
+    .banner .banner-body strong { display: block; margin-bottom: 2px; }
+    .banner-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .banner-frame {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .banner-frame .fake-app {
+      padding: 14px;
+      min-height: 120px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Undo window */
+    .undo-list { display: grid; gap: 8px; margin-bottom: 12px; }
+    .undo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+    }
+    .undo-bar {
+      border-radius: 14px;
+      background: #1f2925;
+      color: #f3f6f3;
+      padding: 12px 14px;
+      display: none;
+    }
+    .undo-bar.is-on { display: block; }
+    .undo-bar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .undo-bar .bar { background: rgba(255,255,255,.2); }
+    .undo-bar .bar > i { background: #5eead4; }
+    .undo-bar button {
+      min-height: 32px;
+      padding: 4px 12px;
+      background: rgba(255,255,255,.16);
+      font-size: 12px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 720px) {
+      .split { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skel-avatar, .skel-line, .spinner, .toast { animation: none !important; }
+      .bar > i { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>Feedback States</h1>
+      <p>基于 <code>ui/feedback-states</code> 的八种操作反馈演示。可点按钮切换路径；右下角为 Toast 宿主。</p>
+    </header>
+
+    <nav class="toc">
+      <a href="#p1">1. Button busy</a>
+      <a href="#p2">2. Skeleton</a>
+      <a href="#p3">3. Optimistic</a>
+      <a href="#p4">4. Toast</a>
+      <a href="#p5">5. Empty</a>
+      <a href="#p6">6. Error+retry</a>
+      <a href="#p7">7. Inline</a>
+      <a href="#p8">8. Progress</a>
+      <a href="#p9">9. Confirm</a>
+      <a href="#p10">10. Banner</a>
+      <a href="#p11">11. Undo</a>
+    </nav>
+
+    <!-- 1 -->
+    <section class="block" id="p1">
+      <div class="head"><h2>1. Button busy</h2><code>idle → pending → success | error</code></div>
+      <p class="hint">点击提交：最短 busy ~350ms；成功短驻后复位。连点不会重复触发。</p>
+      <div class="stage">
+        <form id="busyForm" class="toolbar" style="margin:0">
+          <button type="submit" class="btn" id="busyBtn">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="label">提交发版单</span>
+          </button>
+          <button type="button" class="secondary" id="busyFailToggle">下次模拟失败</button>
+        </form>
+        <p class="hint" id="busyNote" style="margin:12px 0 0">状态：idle</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="block" id="p2">
+      <div class="head"><h2>2. Skeleton / loading</h2><code>延迟 180ms 出骨架</code></div>
+      <p class="hint">点「加载列表」：先延迟再骨架，再出数据。点「瞬间返回」验证不会闪骨架。</p>
+      <div class="stage">
+        <div class="toolbar">
+          <button type="button" class="secondary" id="skelSlow">加载列表（慢）</button>
+          <button type="button" class="secondary" id="skelFast">瞬间返回</button>
+        </div>
+        <div class="slot" id="skelSlot"></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="block" id="p3">
+      <div class="head"><h2>3. Optimistic update</h2><code>先改 UI，失败回滚 + Toast</code></div>
+      <p class="hint">点星星立即切换。第 2 项会模拟失败并回滚。</p>
+      <div class="stage">
+        <div class="star-list" id="starList"></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="block" id="p4">
+      <div class="head"><h2>4. Toast / Snackbar</h2><code>成功短、错误久、可带动作</code></div>
+      <p class="hint">弹出不同类型 Toast；删除带「撤销」。同时最多保留 3 条。</p>
+      <div class="stage">
+        <div class="toolbar">
+          <button type="button" class="secondary" id="toastOk">成功 Toast</button>
+          <button type="button" class="secondary" id="toastErr">错误 Toast</button>
+          <button type="button" class="secondary" id="toastUndo">删除 + 撤销</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 & 6 -->
+    <section class="block" id="p5">
+      <div class="head"><h2>5 &amp; 6. Empty / Error + retry</h2><code>内容槽四态互斥</code></div>
+      <p class="hint">同一列表槽：骨架 / 数据 / 空 / 错误 互斥切换。</p>
+      <div class="stage" id="p6">
+        <div class="toolbar">
+          <button type="button" class="secondary" data-list="loading">加载中</button>
+          <button type="button" class="secondary" data-list="data">有数据</button>
+          <button type="button" class="secondary" data-list="empty">空状态</button>
+          <button type="button" class="secondary" data-list="error">失败</button>
+        </div>
+        <div class="slot" id="listSlot"></div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="block" id="p7">
+      <div class="head"><h2>7. Inline result</h2><code>字段旁即时结果</code></div>
+      <p class="hint">失焦或点保存：校验失败行内报错；成功显示「已保存」后淡出。</p>
+      <div class="stage">
+        <div class="field">
+          <label for="nick">昵称</label>
+          <div class="field-row">
+            <input id="nick" value="运维小张" maxlength="20" />
+            <button type="button" class="secondary" id="saveNick">保存</button>
+          </div>
+          <div class="field-msg" id="nickMsg" aria-live="polite"></div>
+        </div>
+        <div class="field">
+          <label for="mail">邮箱</label>
+          <div class="field-row">
+            <input id="mail" value="ops@" />
+            <button type="button" class="secondary" id="saveMail">保存</button>
+          </div>
+          <div class="field-msg" id="mailMsg" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="block" id="p8">
+      <div class="head"><h2>8. Long-running progress</h2><code>阶段文案 + 可取消</code></div>
+      <p class="hint">导出约数秒；可中途取消。完成后 Toast。</p>
+      <div class="stage">
+        <div class="toolbar">
+          <button type="button" id="startExport">开始导出</button>
+        </div>
+        <div class="progress-card" id="progressCard" hidden>
+          <h3 id="progressTitle">正在导出报表</h3>
+          <p class="sub" id="progressSub">准备中…</p>
+          <div class="bar" aria-hidden="true"><i id="progressBar"></i></div>
+          <div class="progress-actions">
+            <button type="button" class="secondary" id="cancelExport">取消</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="block" id="p9">
+      <div class="head"><h2>9. Destructive confirm</h2><code>按钮确认 · 或滑满确认（未满回弹）</code></div>
+      <p class="hint">上方为对话框确认；下方滑块必须拉满才删除，松手未满自动回弹到 0。</p>
+      <div class="stage">
+        <div class="toolbar">
+          <button type="button" class="danger" id="openConfirm">清空全部运单（对话框）</button>
+        </div>
+        <p class="hint" id="confirmNote" style="margin:0">对话框状态：未打开</p>
+
+        <div class="slide-confirm">
+          <h4>变体：滑块拉满确认</h4>
+          <p class="hint" style="margin:0">拖动手柄到最右松手；未满则回弹。拉满后触发删除（演示）。</p>
+          <div
+            class="slide-track"
+            id="slideTrack"
+            role="slider"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="滑到底以确认删除仓库"
+            tabindex="0"
+          >
+            <div class="slide-fill" id="slideFill"></div>
+            <div class="slide-label" id="slideLabel">滑到底以确认删除</div>
+            <div class="slide-thumb" id="slideThumb" aria-hidden="true">››</div>
+          </div>
+          <p class="hint" id="slideNote" style="margin:10px 0 0">滑块进度：0%</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="block" id="p10">
+      <div class="head"><h2>10. Page banner</h2><code>持久告警 · 不自动消失</code></div>
+      <p class="hint">切换级别；关闭后仅本会话隐藏。这是系统态，不是一次性 Toast。</p>
+      <div class="stage">
+        <div class="toolbar">
+          <button type="button" class="secondary" data-banner="warn">维护告警</button>
+          <button type="button" class="secondary" data-banner="critical">欠费严重</button>
+          <button type="button" class="secondary" data-banner="info">只读提示</button>
+          <button type="button" class="secondary" id="bannerReset">重新显示</button>
+        </div>
+        <div class="banner-frame">
+          <div id="bannerHost"></div>
+          <div class="fake-app">下方为页面内容。Banner 持续占位，直到关闭或根因恢复。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="block" id="p11">
+      <div class="head"><h2>11. Undo window</h2><code>先改 UI · 倒计时内撤销 · 到期再提交</code></div>
+      <p class="hint">点删除：行先消失并出现 Undo 条；倒计时内可撤销。到期后才「真正删除」。</p>
+      <div class="stage">
+        <div class="undo-list" id="undoList"></div>
+        <div class="undo-bar" id="undoBar" aria-live="polite">
+          <div class="undo-bar-top">
+            <span id="undoText">已删除</span>
+            <button type="button" id="undoBtn">撤销</button>
+          </div>
+          <div class="bar"><i id="undoProgress"></i></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">清空全部运单？</h3>
+      <p>此操作无法恢复，所有进行中的轨迹与草稿将一并移除。</p>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="confirmCancel">取消</button>
+        <button type="button" class="danger" id="confirmOk">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-host" id="toastHost" aria-live="polite"></div>
+
+  <script>
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, reduceMotion ? Math.min(ms, 120) : ms));
+
+    /* —— Toast host —— */
+    const toastHost = document.getElementById("toastHost");
+    function showToast({ message, type = "ok", actionLabel, onAction, duration }) {
+      while (toastHost.children.length >= 3) toastHost.firstChild.remove();
+      const el = document.createElement("div");
+      el.className = `toast ${type}`;
+      el.setAttribute("role", type === "err" ? "alert" : "status");
+      const ms = duration ?? (type === "err" ? 5000 : 3000);
+      el.innerHTML = `<div class="body"></div><div class="actions"></div>`;
+      el.querySelector(".body").textContent = message;
+      const actions = el.querySelector(".actions");
+      if (actionLabel && onAction) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = actionLabel;
+        btn.addEventListener("click", () => {
+          onAction();
+          el.remove();
+        });
+        actions.appendChild(btn);
+      }
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "✕";
+      close.addEventListener("click", () => el.remove());
+      actions.appendChild(close);
+      toastHost.appendChild(el);
+      const timer = setTimeout(() => el.remove(), ms);
+      el.addEventListener("mouseenter", () => clearTimeout(timer));
+      return el;
+    }
+
+    /* 1. Button busy */
+    (function () {
+      const form = document.getElementById("busyForm");
+      const btn = document.getElementById("busyBtn");
+      const label = btn.querySelector(".label");
+      const note = document.getElementById("busyNote");
+      const failToggle = document.getElementById("busyFailToggle");
+      let pending = false;
+      let failNext = false;
+      let started = 0;
+
+      failToggle.addEventListener("click", () => {
+        failNext = !failNext;
+        failToggle.textContent = failNext ? "下次模拟失败 ✓" : "下次模拟失败";
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (pending) return;
+        pending = true;
+        started = Date.now();
+        btn.classList.add("is-busy");
+        btn.disabled = true;
+        label.textContent = "提交中…";
+        note.textContent = "状态：pending（连点已忽略）";
+
+        const willFail = failNext;
+        failNext = false;
+        failToggle.textContent = "下次模拟失败";
+
+        await sleep(900);
+        const elapsed = Date.now() - started;
+        if (elapsed < 350) await sleep(350 - elapsed);
+
+        if (willFail) {
+          pending = false;
+          btn.classList.remove("is-busy");
+          btn.disabled = false;
+          label.textContent = "提交发版单";
+          note.textContent = "状态：error → 已解锁";
+          showToast({ type: "err", message: "提交失败：网络超时，请重试" });
+          return;
+        }
+
+        label.textContent = "已提交";
+        note.textContent = "状态：success";
+        await sleep(1000);
+        pending = false;
+        btn.classList.remove("is-busy");
+        btn.disabled = false;
+        label.textContent = "提交发版单";
+        note.textContent = "状态：idle";
+        showToast({ message: "发版单已提交" });
+      });
+    })();
+
+    /* 2. Skeleton */
+    (function () {
+      const slot = document.getElementById("skelSlot");
+      const people = [
+        { name: "杭州仓-A12", sub: "在途 · 预计 18:00", color: "#0f766e" },
+        { name: "上海浦东-B03", sub: "分拣中", color: "#1d4ed8" },
+        { name: "深圳南山-C08", sub: "已签收", color: "#b45309" },
+      ];
+
+      function renderSkeleton() {
+        slot.innerHTML = `<div class="skel-list">${[0,1,2].map(() => `
+          <div class="skel-row">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w60"></div>
+              <div class="skel-line w90"></div>
+            </div>
+            <div class="skel-line w40"></div>
+          </div>`).join("")}</div>`;
+      }
+
+      function renderData() {
+        slot.innerHTML = `<div class="skel-list">${people.map((p) => `
+          <div class="data-row">
+            <div class="avatar" style="background:${p.color}">${p.name.slice(0,1)}</div>
+            <div class="meta"><strong>${p.name}</strong><span>${p.sub}</span></div>
+            <span style="font-size:12px;color:var(--muted)">详情</span>
+          </div>`).join("")}</div>`;
+      }
+
+      async function load(delayMs) {
+        slot.innerHTML = "";
+        let shown = false;
+        const timer = setTimeout(() => {
+          shown = true;
+          renderSkeleton();
+        }, 180);
+        await sleep(delayMs);
+        clearTimeout(timer);
+        renderData();
+        if (!shown && delayMs < 180) {
+          /* 瞬间返回：从未出现骨架 */
+        }
+      }
+
+      document.getElementById("skelSlow").addEventListener("click", () => load(1200));
+      document.getElementById("skelFast").addEventListener("click", () => load(80));
+      renderData();
+    })();
+
+    /* 3. Optimistic */
+    (function () {
+      const list = document.getElementById("starList");
+      const items = [
+        { id: 1, title: "常用地址 · 公司", starred: true, fail: false },
+        { id: 2, title: "常用地址 · 家（此项会失败）", starred: false, fail: true },
+        { id: 3, title: "常用地址 · 杭州仓", starred: false, fail: false },
+      ];
+
+      function paint() {
+        list.innerHTML = "";
+        items.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "star-item";
+          row.innerHTML = `<span>${item.title}</span>`;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `star-btn${item.starred ? " on" : ""}`;
+          btn.setAttribute("aria-pressed", String(item.starred));
+          btn.textContent = item.starred ? "★" : "☆";
+          btn.addEventListener("click", async () => {
+            const prev = item.starred;
+            item.starred = !prev;
+            paint();
+            await sleep(700);
+            if (item.fail) {
+              item.starred = prev;
+              paint();
+              showToast({
+                type: "err",
+                message: "收藏失败：服务暂时不可用，已恢复原状态",
+              });
+            }
+          });
+          row.appendChild(btn);
+          list.appendChild(row);
+        });
+      }
+      paint();
+    })();
+
+    /* 4. Toast triggers */
+    document.getElementById("toastOk").addEventListener("click", () => {
+      showToast({ message: "已保存设置" });
+    });
+    document.getElementById("toastErr").addEventListener("click", () => {
+      showToast({
+        type: "err",
+        message: "发送失败：网络超时",
+        actionLabel: "重试",
+        onAction: () => showToast({ message: "已重新发送" }),
+      });
+    });
+    document.getElementById("toastUndo").addEventListener("click", () => {
+      let undone = false;
+      showToast({
+        message: "已删除运单 #A2048",
+        actionLabel: "撤销",
+        duration: 4500,
+        onAction: () => {
+          undone = true;
+          showToast({ message: "已撤销删除" });
+        },
+      });
+      setTimeout(() => {
+        if (!undone) { /* 演示：超时即真正删除 */ }
+      }, 4500);
+    });
+
+    /* 5 & 6 list slot */
+    (function () {
+      const slot = document.getElementById("listSlot");
+      const data = [
+        { name: "运单 #A1001", sub: "杭州 → 上海" },
+        { name: "运单 #A1002", sub: "深圳 → 广州" },
+      ];
+
+      function setMode(mode) {
+        if (mode === "loading") {
+          slot.innerHTML = `<div class="skel-list">${[0,1].map(() => `
+            <div class="skel-row">
+              <div class="skel-avatar"></div>
+              <div class="skel-lines"><div class="skel-line w60"></div><div class="skel-line w90"></div></div>
+              <div class="skel-line w40"></div>
+            </div>`).join("")}</div>`;
+          return;
+        }
+        if (mode === "data") {
+          slot.innerHTML = `<div class="skel-list">${data.map((d, i) => `
+            <div class="data-row">
+              <div class="avatar" style="background:${i ? "#1d4ed8" : "#0f766e"}">${i + 1}</div>
+              <div class="meta"><strong>${d.name}</strong><span>${d.sub}</span></div>
+              <span style="font-size:12px;color:var(--muted)">详情</span>
+            </div>`).join("")}</div>`;
+          return;
+        }
+        if (mode === "empty") {
+          slot.innerHTML = `
+            <div class="panel-state">
+              <div class="icon-lg" aria-hidden="true">📭</div>
+              <h3>还没有运单</h3>
+              <p>创建后会出现在这里。也可以先看看操作说明。</p>
+              <div class="panel-actions">
+                <button type="button">创建运单</button>
+                <button type="button" class="secondary">了解规则</button>
+              </div>
+            </div>`;
+          return;
+        }
+        if (mode === "error") {
+          slot.innerHTML = `
+            <div class="panel-state">
+              <div class="icon-lg" aria-hidden="true">⚠️</div>
+              <h3>无法加载运单</h3>
+              <p>网络超时 · 请检查网络后重试</p>
+              <div class="panel-actions">
+                <button type="button" id="retryList">重试</button>
+                <button type="button" class="secondary">查看详情</button>
+              </div>
+            </div>`;
+          document.getElementById("retryList").addEventListener("click", async () => {
+            setMode("loading");
+            await sleep(900);
+            setMode("data");
+            showToast({ message: "已重新加载" });
+          });
+        }
+      }
+
+      document.querySelectorAll("[data-list]").forEach((btn) => {
+        btn.addEventListener("click", () => setMode(btn.dataset.list));
+      });
+      setMode("data");
+    })();
+
+    /* 7. Inline */
+    (function () {
+      async function saveField(input, msg, validate) {
+        const result = validate(input.value.trim());
+        input.classList.toggle("is-invalid", !result.ok);
+        if (!result.ok) {
+          msg.textContent = result.message;
+          msg.className = "field-msg err";
+          return;
+        }
+        msg.textContent = "保存中…";
+        msg.className = "field-msg";
+        await sleep(500);
+        msg.textContent = "✓ 已保存";
+        msg.className = "field-msg ok";
+        await sleep(1800);
+        if (msg.textContent.includes("已保存")) {
+          msg.textContent = "";
+          msg.className = "field-msg";
+        }
+      }
+
+      document.getElementById("saveNick").addEventListener("click", () => {
+        saveField(
+          document.getElementById("nick"),
+          document.getElementById("nickMsg"),
+          (v) => (v.length >= 2 ? { ok: true } : { ok: false, message: "昵称至少 2 个字符" })
+        );
+      });
+      document.getElementById("saveMail").addEventListener("click", () => {
+        saveField(
+          document.getElementById("mail"),
+          document.getElementById("mailMsg"),
+          (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+            ? { ok: true }
+            : { ok: false, message: "邮箱格式不正确" })
+        );
+      });
+    })();
+
+    /* 8. Progress */
+    (function () {
+      const card = document.getElementById("progressCard");
+      const bar = document.getElementById("progressBar");
+      const title = document.getElementById("progressTitle");
+      const sub = document.getElementById("progressSub");
+      const startBtn = document.getElementById("startExport");
+      const cancelBtn = document.getElementById("cancelExport");
+      let timer = null;
+      let cancelled = false;
+      let value = 0;
+
+      function reset() {
+        clearInterval(timer);
+        timer = null;
+        value = 0;
+        bar.style.width = "0%";
+        card.hidden = true;
+        startBtn.disabled = false;
+      }
+
+      startBtn.addEventListener("click", async () => {
+        cancelled = false;
+        startBtn.disabled = true;
+        card.hidden = false;
+        title.textContent = "正在导出报表";
+        sub.textContent = "准备中…";
+        value = 0;
+        bar.style.width = "0%";
+
+        const stages = [
+          [15, "收集数据…"],
+          [45, "生成表格…"],
+          [75, "打包文件…"],
+          [100, "即将完成…"],
+        ];
+        let stageIdx = 0;
+
+        timer = setInterval(() => {
+          if (cancelled) return;
+          value = Math.min(100, value + 2);
+          bar.style.width = value + "%";
+          if (stageIdx < stages.length && value >= stages[stageIdx][0]) {
+            sub.textContent = `${stages[stageIdx][1]} ${value}%`;
+            stageIdx += 1;
+          } else {
+            sub.textContent = `已处理 ${value} / 100`;
+          }
+          if (value >= 100) {
+            clearInterval(timer);
+            timer = null;
+            title.textContent = "导出完成";
+            sub.textContent = "报表已生成";
+            showToast({
+              message: "导出完成",
+              actionLabel: "下载",
+              onAction: () => showToast({ message: "开始下载（演示）" }),
+            });
+            setTimeout(reset, 1200);
+          }
+        }, reduceMotion ? 40 : 70);
+      });
+
+      cancelBtn.addEventListener("click", () => {
+        cancelled = true;
+        clearInterval(timer);
+        timer = null;
+        title.textContent = "已取消导出";
+        sub.textContent = "未生成文件";
+        showToast({ type: "err", message: "已取消导出" });
+        setTimeout(reset, 900);
+      });
+    })();
+
+    /* 9. Destructive confirm */
+    (function () {
+      const modal = document.getElementById("confirmModal");
+      const openBtn = document.getElementById("openConfirm");
+      const cancelBtn = document.getElementById("confirmCancel");
+      const okBtn = document.getElementById("confirmOk");
+      const note = document.getElementById("confirmNote");
+      let lastFocus = null;
+      let busy = false;
+
+      function open() {
+        lastFocus = document.activeElement;
+        modal.hidden = false;
+        note.textContent = "对话框状态：open（默认焦点 → 取消）";
+        cancelBtn.focus();
+      }
+      function close() {
+        modal.hidden = true;
+        note.textContent = "对话框状态：closed";
+        (lastFocus || openBtn).focus();
+      }
+
+      openBtn.addEventListener("click", open);
+      cancelBtn.addEventListener("click", close);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) close();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (modal.hidden) return;
+        if (e.key === "Escape") close();
+      });
+
+      okBtn.addEventListener("click", async () => {
+        if (busy) return;
+        busy = true;
+        okBtn.disabled = true;
+        cancelBtn.disabled = true;
+        okBtn.textContent = "删除中…";
+        note.textContent = "对话框状态：confirming";
+        await sleep(800);
+        busy = false;
+        okBtn.disabled = false;
+        cancelBtn.disabled = false;
+        okBtn.textContent = "删除";
+        close();
+        showToast({ type: "err", message: "已清空全部运单（演示）" });
+        note.textContent = "对话框状态：已确认并完成";
+      });
+    })();
+
+    /* 9b. Slide to confirm */
+    (function () {
+      const track = document.getElementById("slideTrack");
+      const thumb = document.getElementById("slideThumb");
+      const fill = document.getElementById("slideFill");
+      const label = document.getElementById("slideLabel");
+      const note = document.getElementById("slideNote");
+      const THRESHOLD = 0.95;
+      let dragging = false;
+      let done = false;
+      let progress = 0;
+      let maxX = 0;
+
+      function measure() {
+        maxX = Math.max(0, track.clientWidth - thumb.offsetWidth - 8);
+      }
+
+      function setProgress(p, { animate = false } = {}) {
+        progress = Math.max(0, Math.min(1, p));
+        track.classList.toggle("is-snapping", animate);
+        track.classList.toggle("is-armed", progress >= THRESHOLD && !done);
+        const x = progress * maxX;
+        thumb.style.transform = `translateX(${x}px)`;
+        fill.style.width = `${((x + thumb.offsetWidth / 2) / track.clientWidth) * 100}%`;
+        track.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
+        note.textContent = `滑块进度：${Math.round(progress * 100)}%`;
+        if (!done) {
+          label.textContent = progress >= THRESHOLD ? "松手以确认删除" : "滑到底以确认删除";
+        }
+      }
+
+      function snapBack() {
+        setProgress(0, { animate: !reduceMotion });
+        setTimeout(() => track.classList.remove("is-snapping"), 280);
+      }
+
+      async function commit() {
+        done = true;
+        setProgress(1, { animate: !reduceMotion });
+        track.classList.add("is-done");
+        label.textContent = "已确认";
+        thumb.textContent = "✓";
+        note.textContent = "滑块进度：100% → 已提交";
+        showToast({ type: "err", message: "已确认删除（滑满触发）" });
+        await sleep(1600);
+        done = false;
+        track.classList.remove("is-done", "is-armed");
+        thumb.textContent = "››";
+        snapBack();
+        note.textContent = "滑块进度：0%（已复位，可再试）";
+      }
+
+      function onDown(e) {
+        if (done) return;
+        dragging = true;
+        measure();
+        track.classList.remove("is-snapping");
+        thumb.setPointerCapture?.(e.pointerId);
+      }
+
+      function onMove(e) {
+        if (!dragging || done) return;
+        const rect = track.getBoundingClientRect();
+        const x = e.clientX - rect.left - thumb.offsetWidth / 2 - 4;
+        setProgress(maxX ? x / maxX : 0);
+      }
+
+      function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        if (done) return;
+        if (progress >= THRESHOLD) commit();
+        else snapBack();
+      }
+
+      thumb.addEventListener("pointerdown", onDown);
+      thumb.addEventListener("pointermove", onMove);
+      thumb.addEventListener("pointerup", onUp);
+      thumb.addEventListener("pointercancel", onUp);
+      track.addEventListener("pointerdown", (e) => {
+        if (e.target === thumb || done) return;
+        measure();
+        const rect = track.getBoundingClientRect();
+        const x = e.clientX - rect.left - thumb.offsetWidth / 2 - 4;
+        setProgress(maxX ? x / maxX : 0);
+        onDown(e);
+      });
+
+      track.addEventListener("keydown", (e) => {
+        if (done) return;
+        measure();
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          setProgress(progress + 0.08);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          setProgress(progress - 0.08);
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          snapBack();
+        } else if (e.key === "End" || e.key === "Enter") {
+          e.preventDefault();
+          setProgress(1);
+          commit();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          snapBack();
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        measure();
+        setProgress(progress);
+      });
+      measure();
+      setProgress(0);
+    })();
+
+    /* 10. Page banner */
+    (function () {
+      const host = document.getElementById("bannerHost");
+      let dismissed = false;
+      let level = "warn";
+
+      const copy = {
+        warn: {
+          cls: "warn",
+          title: "系统维护通知",
+          body: "今晚 02:00–04:00 写入暂停，查询可用。[详情]",
+        },
+        critical: {
+          cls: "critical",
+          title: "账户已欠费",
+          body: "API 调用已受限，请尽快充值以免中断配送回调。",
+        },
+        info: {
+          cls: "info",
+          title: "当前为只读模式",
+          body: "你没有编辑权限，所有更改入口已隐藏。",
+        },
+      };
+
+      function render() {
+        if (dismissed) {
+          host.innerHTML = "";
+          return;
+        }
+        const c = copy[level];
+        host.innerHTML = `
+          <div class="banner ${c.cls}" role="status">
+            <div class="banner-body">
+              <strong>${c.title}</strong>
+              ${c.body}
+            </div>
+            <div class="banner-actions">
+              <button type="button" class="ghost" id="bannerAction">${level === "critical" ? "去充值" : "详情"}</button>
+              <button type="button" class="ghost" id="bannerClose" aria-label="关闭">✕</button>
+            </div>
+          </div>`;
+        document.getElementById("bannerClose").addEventListener("click", () => {
+          dismissed = true;
+          render();
+          showToast({ message: "已关闭 Banner（本会话）" });
+        });
+        document.getElementById("bannerAction").addEventListener("click", () => {
+          showToast({ message: level === "critical" ? "打开充值页（演示）" : "打开公告（演示）" });
+        });
+      }
+
+      document.querySelectorAll("[data-banner]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          level = btn.dataset.banner;
+          dismissed = false;
+          render();
+        });
+      });
+      document.getElementById("bannerReset").addEventListener("click", () => {
+        dismissed = false;
+        render();
+      });
+      render();
+    })();
+
+    /* 11. Undo window */
+    (function () {
+      const listEl = document.getElementById("undoList");
+      const bar = document.getElementById("undoBar");
+      const text = document.getElementById("undoText");
+      const progress = document.getElementById("undoProgress");
+      const undoBtn = document.getElementById("undoBtn");
+      const DURATION = reduceMotion ? 3000 : 6000;
+
+      let rows = [
+        { id: "A2048", title: "运单 #A2048 · 杭州 → 上海" },
+        { id: "A2049", title: "运单 #A2049 · 深圳 → 广州" },
+        { id: "A2050", title: "运单 #A2050 · 成都 → 西安" },
+      ];
+      let pending = null; // { item, token, timer, started }
+      let raf = null;
+
+      function paint() {
+        listEl.innerHTML = "";
+        rows.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "undo-row";
+          row.innerHTML = `<span>${item.title}</span>`;
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "secondary";
+          del.textContent = "删除";
+          del.addEventListener("click", () => startUndo(item));
+          row.appendChild(del);
+          listEl.appendChild(row);
+        });
+        if (!rows.length) {
+          listEl.innerHTML = `<p class="hint" style="margin:0">列表为空。可在 Undo 内撤销，或刷新页面重置演示数据。</p>`;
+        }
+      }
+
+      function clearPending(commit) {
+        if (!pending) return;
+        clearTimeout(pending.timer);
+        cancelAnimationFrame(raf);
+        const item = pending.item;
+        const token = pending.token;
+        pending = null;
+        bar.classList.remove("is-on");
+        progress.style.width = "0%";
+        if (commit) {
+          showToast({ message: `已永久删除「${item.id}」（演示提交）` });
+        }
+        return { item, token };
+      }
+
+      function startUndo(item) {
+        if (pending) clearPending(true); // 上一条到期逻辑：切换时先提交上一条
+        rows = rows.filter((r) => r.id !== item.id);
+        paint();
+        const token = Symbol(item.id);
+        const started = Date.now();
+        text.textContent = `已删除「${item.title}」· ${Math.ceil(DURATION / 1000)}s 内可撤销`;
+        bar.classList.add("is-on");
+        progress.style.width = "100%";
+
+        const tick = () => {
+          if (!pending || pending.token !== token) return;
+          const left = 1 - (Date.now() - started) / DURATION;
+          progress.style.width = `${Math.max(0, left * 100)}%`;
+          const sec = Math.max(0, Math.ceil((DURATION - (Date.now() - started)) / 1000));
+          text.textContent = `已删除「${item.title}」· ${sec}s 内可撤销`;
+          if (left > 0) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+
+        const timer = setTimeout(() => {
+          if (pending && pending.token === token) clearPending(true);
+        }, DURATION);
+
+        pending = { item, token, timer, started };
+      }
+
+      undoBtn.addEventListener("click", () => {
+        if (!pending) return;
+        const { item } = clearPending(false);
+        rows = [item, ...rows];
+        paint();
+        showToast({ message: "已撤销删除" });
+      });
+
+      paint();
+    })();
+  </script>
+</body>
+</html>
