@@ -25,11 +25,14 @@ skill-sapce/
 ├── README.md
 ├── ui/
 │   ├── .gitkeep
-│   └── soft-card-ui/         # Soft Card UI 设计系统
+│   ├── soft-card-ui/         # Soft Card UI 设计系统
+│   │   ├── SKILL.md
+│   │   ├── components.md
+│   │   ├── platforms.md
+│   │   └── tokens.md
+│   └── micro-interactions/   # 手势微交互组件
 │       ├── SKILL.md
-│       ├── components.md
-│       ├── platforms.md
-│       └── tokens.md
+│       └── components.md
 ├── frontend/
 │   └── .gitkeep
 ├── backend/
@@ -51,6 +54,7 @@ skill-sapce/
 | 分类 | Skill | 用途 | 何时触发 |
 |------|-------|------|----------|
 | `ui/` | [`soft-card-ui`](./ui/soft-card-ui/) | Soft Card / 物流 App 风跨端 UI | 提到 soft-card、物流追踪风、大圆角卡片、tracking UI |
+| `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 六个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大图标、下拉摘要 |
 
 ## 安装到 Cursor
 
