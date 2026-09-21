@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Table Interactions — 表格操作演示</title>
+  <style>
+    :root {
+      --bg: #e8ebe6;
+      --ink: #1a1f1c;
+      --muted: #5c675f;
+      --surface: #f7f8f5;
+      --surface-2: #eef1ec;
+      --line: rgba(26, 31, 28, 0.09);
+      --accent: #0f766e;
+      --accent-soft: rgba(15, 118, 110, 0.14);
+      --ok: #15803d;
+      --ok-bg: #dcfce7;
+      --err: #b91c1c;
+      --err-bg: #fee2e2;
+      --warn: #b45309;
+      --selected: rgba(15, 118, 110, 0.1);
+      --shadow: 0 10px 28px rgba(26, 31, 28, 0.08);
+      --radius: 18px;
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --row-h: 48px;
+      --sticky-bg: #f7f8f5;
+      --sticky-head: #eef1ec;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(1100px 520px at 0% -10%, #dfe8e2 0%, transparent 55%),
+        radial-gradient(900px 480px at 100% 0%, #dde4da 0%, transparent 50%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 120px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.55rem, 3vw, 2rem);
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 58ch;
+    }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 28px;
+    }
+    .toc a {
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .toc a:hover { color: var(--accent); border-color: var(--accent); }
+
+    .block {
+      margin-bottom: 28px;
+      scroll-margin-top: 16px;
+    }
+    .head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .head h2 { margin: 0; font-size: 1.05rem; }
+    .head code {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .hint {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .stage {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button, .btn {
+      font: inherit;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 14px;
+      min-height: 36px;
+      cursor: pointer;
+      background: var(--ink);
+      color: #fff;
+      transition: transform 120ms var(--ease), background 160ms;
+    }
+    button:active { transform: scale(0.97); }
+    button.secondary {
+      background: var(--surface-2);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+    button.ghost:hover { background: var(--surface-2); color: var(--ink); }
+    button.danger { background: var(--err); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* —— 工具栏 —— */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .toolbar .spacer { flex: 1; min-width: 8px; }
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0 12px;
+      min-height: 36px;
+      min-width: min(220px, 100%);
+    }
+    .search input {
+      border: 0;
+      background: transparent;
+      font: inherit;
+      outline: none;
+      width: 140px;
+      color: var(--ink);
+    }
+    .density {
+      display: inline-flex;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px;
+    }
+    .density button {
+      min-height: 30px;
+      padding: 4px 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .density button.active {
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(26, 31, 28, 0.08);
+    }
+
+    /* —— 筛选 chips —— */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+      min-height: 28px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 8px 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(15, 118, 110, 0.25);
+      animation: chip-in 180ms var(--ease);
+    }
+    .chip button {
+      min-height: 20px;
+      width: 20px;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--accent);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .chip button:hover { background: rgba(15, 118, 110, 0.15); }
+    @keyframes chip-in {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* —— 表格壳 —— */
+    .table-shell {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      position: relative;
+      /* 自身不滚动：焦点在此，↑↓ 才不会被浏览器当成滚滚动条 */
+      overflow: hidden;
+    }
+    .table-shell:focus {
+      outline: none;
+    }
+    .table-shell:focus-visible,
+    .table-shell.nav-armed {
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+    .table-scroll {
+      overflow: auto;
+      max-height: 440px;
+      /* 禁止把方向键默认滚动交给该层 */
+      overscroll-behavior: contain;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      min-width: 100%;
+      font-size: 13px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: var(--sticky-head);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-weight: 600;
+      padding: 0;
+      height: 40px;
+      white-space: nowrap;
+      user-select: none;
+    }
+    th .th-inner {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      height: 40px;
+      position: relative;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover .th-label { color: var(--accent); }
+    .sort-icon {
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.5;
+      width: 12px;
+    }
+    th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+
+    /* 列宽拖拽柄 */
+    .col-resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 4;
+    }
+    .col-resizer:hover,
+    .col-resizer.active {
+      background: rgba(15, 118, 110, 0.35);
+    }
+
+    tbody td {
+      border-bottom: 1px solid var(--line);
+      padding: 0 12px;
+      height: var(--row-h);
+      white-space: nowrap;
+      vertical-align: middle;
+      transition: background 120ms;
+    }
+    tbody tr {
+      outline: none;
+    }
+    tbody tr:hover td {
+      background: rgba(26, 31, 28, 0.03);
+    }
+    tbody tr.selected td {
+      background: var(--selected);
+    }
+    tbody tr.selected:hover td {
+      background: rgba(15, 118, 110, 0.16);
+    }
+    tbody tr.focus-row td {
+      box-shadow: inset 2px 0 0 var(--accent);
+      background: rgba(15, 118, 110, 0.07);
+    }
+    tbody tr.focus-row.selected td {
+      background: rgba(15, 118, 110, 0.18);
+    }
+    tbody tr.flash td {
+      animation: row-flash 520ms var(--ease);
+    }
+    @keyframes row-flash {
+      0% { background: var(--ok-bg); }
+      100% { background: transparent; }
+    }
+    tbody tr.removing td {
+      animation: row-out 280ms var(--ease) forwards;
+    }
+    @keyframes row-out {
+      to { opacity: 0; transform: translateX(24px); }
+    }
+
+    /* 冻结首列 + 操作列 */
+    .col-check,
+    .col-name {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--sticky-bg);
+    }
+    thead .col-check,
+    thead .col-name {
+      z-index: 5;
+      background: var(--sticky-head);
+    }
+    .col-check { left: 0; width: 44px; min-width: 44px; }
+    .col-name { left: 44px; min-width: 140px; }
+    .col-actions {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background: linear-gradient(90deg, transparent, var(--sticky-bg) 12px);
+      text-align: right;
+      min-width: 120px;
+    }
+    thead .col-actions {
+      z-index: 5;
+      background: linear-gradient(90deg, transparent, var(--sticky-head) 12px);
+    }
+    tr.selected .col-check,
+    tr.selected .col-name,
+    tr.selected .col-actions {
+      background: #e4f0ed;
+    }
+    thead .col-check .th-inner,
+    thead .col-name .th-inner { padding-left: 12px; }
+
+    .check {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--surface-2);
+    }
+    .status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .status.ok { background: var(--ok-bg); color: var(--ok); }
+    .status.ok::before { background: var(--ok); }
+    .status.warn { background: #ffedd5; color: var(--warn); }
+    .status.warn::before { background: var(--warn); }
+    .status.err { background: var(--err-bg); color: var(--err); }
+    .status.err::before { background: var(--err); }
+
+    .cell-edit {
+      display: inline-flex;
+      align-items: center;
+      min-width: 64px;
+      min-height: 28px;
+      padding: 2px 6px;
+      margin: -2px -6px;
+      border-radius: 6px;
+      cursor: text;
+      border: 1px solid transparent;
+    }
+    .cell-edit:hover { border-color: var(--line); background: #fff; }
+    .cell-edit.editing {
+      padding: 0;
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .cell-edit input {
+      width: 100%;
+      min-width: 72px;
+      border: 0;
+      outline: none;
+      font: inherit;
+      padding: 4px 6px;
+      background: transparent;
+    }
+
+    .row-actions {
+      display: inline-flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 140ms;
+    }
+    tr:hover .row-actions,
+    tr.focus-row .row-actions,
+    tr.selected .row-actions {
+      opacity: 1;
+    }
+    .row-actions button {
+      min-height: 28px;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+    }
+    .row-actions button:hover {
+      background: var(--surface-2);
+      color: var(--ink);
+    }
+    .row-actions button.danger:hover {
+      background: var(--err-bg);
+      color: var(--err);
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kbd {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    /* —— 批量操作条 —— */
+    .batch-bar {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(120%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 999px;
+      box-shadow: 0 12px 32px rgba(26, 31, 28, 0.28);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 280ms var(--ease), opacity 220ms;
+      white-space: nowrap;
+    }
+    .batch-bar.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .batch-bar .count {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .batch-bar button {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      min-height: 32px;
+      padding: 4px 12px;
+      font-size: 13px;
+    }
+    .batch-bar button:hover { background: rgba(255, 255, 255, 0.2); }
+    .batch-bar button.danger {
+      background: #dc2626;
+    }
+    .batch-bar .divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* —— Toast / Undo —— */
+    .toast-host {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 50;
+      width: min(360px, calc(100% - 32px));
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      animation: toast-in 220ms var(--ease);
+      font-size: 13px;
+    }
+    .toast .msg { flex: 1; }
+    .toast button {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      min-height: 30px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .toast .timer {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .toast .timer circle {
+      fill: none;
+      stroke-width: 3;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .toast .timer .track { stroke: rgba(255, 255, 255, 0.2); }
+    .toast .timer .prog {
+      stroke: #5eead4;
+      stroke-dasharray: 75.4;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset linear;
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* —— 空态 —— */
+    .empty {
+      display: none;
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty.show { display: block; }
+    .empty strong { display: block; color: var(--ink); margin-bottom: 6px; }
+
+    .stage.density-compact { --row-h: 36px; }
+    .stage.density-compact td,
+    .stage.density-compact .th-inner { font-size: 12px; }
+    .stage.density-comfortable { --row-h: 56px; }
+
+    .filter-menu {
+      position: relative;
+    }
+    .filter-pop {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 8px;
+      z-index: 30;
+      min-width: 140px;
+    }
+    .filter-pop.open { display: block; }
+    .filter-pop button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: var(--ink);
+      border-radius: 8px;
+      min-height: 34px;
+      font-size: 13px;
+    }
+    .filter-pop button:hover { background: var(--surface-2); }
+    .filter-pop button.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>Data Table Interactions</h1>
+      <p>
+        一张表里体验：行选/连选、批量条、排序、筛选 chip、列宽拖拽、冻结列、
+        就地编辑、删除 Undo、密度切换。示意皮肤，落地请用项目表格组件。
+      </p>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <a href="#playground">Playground</a>
+      <a href="#keys">快捷键</a>
+    </nav>
+
+    <section class="block" id="playground">
+      <div class="head">
+        <h2>操作表格 Playground</h2>
+        <code>select · sort · filter · resize · edit · undo</code>
+      </div>
+      <p class="hint">
+        单击行选中；<span class="kbd">Shift</span> 连选；
+        <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> 点选；
+        双击「金额」就地编辑；拖表头右缘改列宽；横滑看冻结列。
+      </p>
+
+      <div class="stage" id="stage">
+        <div class="toolbar">
+          <div class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="search" type="search" placeholder="搜索客户 / 单号" autocomplete="off" />
+          </div>
+
+          <div class="filter-menu">
+            <button type="button" class="secondary" id="statusFilterBtn">状态筛选 ▾</button>
+            <div class="filter-pop" id="statusFilterPop" role="menu">
+              <button type="button" data-status="all" class="active">全部</button>
+              <button type="button" data-status="ok">已完成</button>
+              <button type="button" data-status="warn">处理中</button>
+              <button type="button" data-status="err">异常</button>
+            </div>
+          </div>
+
+          <button type="button" class="secondary" id="clearFilters" hidden>清除筛选</button>
+
+          <div class="spacer"></div>
+
+          <div class="density" role="group" aria-label="行高密度">
+            <button type="button" data-density="compact">紧凑</button>
+            <button type="button" data-density="default" class="active">默认</button>
+            <button type="button" data-density="comfortable">舒适</button>
+          </div>
+        </div>
+
+        <div class="chips" id="chips" aria-live="polite"></div>
+
+        <div class="table-shell" id="shell" tabindex="0" aria-label="订单表格">
+          <div class="table-scroll" id="scroll">
+          <table id="grid">
+            <thead>
+              <tr>
+                <th class="col-check" style="width:44px">
+                  <div class="th-inner">
+                    <input class="check" type="checkbox" id="checkAll" tabindex="-1" title="全选当前页" aria-label="全选当前页" />
+                  </div>
+                </th>
+                <th class="col-name sortable sorted" data-key="name" data-sort="asc" style="width:160px">
+                  <div class="th-inner">
+                    <span class="th-label">客户</span>
+                    <span class="sort-icon" aria-hidden="true">↑</span>
+                    <span class="col-resizer" data-col="name"></span>
+                  </div>
+                </th>
+                <th class="sortable" data-key="order" style="width:140px">
+                  <div class="th-inner">
+                    <span class="th-label">单号</span>
+                    <span class="sort-icon" aria-hidden="true">↕</span>
+                    <span class="col-resizer" data-col="order"></span>
+                  </div>
+                </th>
+                <th class="sortable" data-key="city" style="width:100px">
+                  <div class="th-inner">
+                    <span class="th-label">城市</span>
+                    <span class="sort-icon" aria-hidden="true">↕</span>
+                    <span class="col-resizer" data-col="city"></span>
+                  </div>
+                </th>
+                <th class="sortable" data-key="amount" style="width:110px">
+                  <div class="th-inner">
+                    <span class="th-label">金额</span>
+                    <span class="sort-icon" aria-hidden="true">↕</span>
+                    <span class="col-resizer" data-col="amount"></span>
+                  </div>
+                </th>
+                <th class="sortable" data-key="status" style="width:110px">
+                  <div class="th-inner">
+                    <span class="th-label">状态</span>
+                    <span class="sort-icon" aria-hidden="true">↕</span>
+                    <span class="col-resizer" data-col="status"></span>
+                  </div>
+                </th>
+                <th style="width:120px">
+                  <div class="th-inner">
+                    <span class="th-label">更新</span>
+                    <span class="col-resizer" data-col="updated"></span>
+                  </div>
+                </th>
+                <th class="col-actions" style="width:120px">
+                  <div class="th-inner" style="justify-content:flex-end">操作</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty" id="empty">
+            <strong>没有符合条件的结果</strong>
+            试试改关键词，或 <button type="button" class="secondary" id="emptyClear">清除筛选</button>
+          </div>
+          </div>
+        </div>
+
+        <div class="meta-bar">
+          <span id="metaCount">0 条</span>
+          <span>·</span>
+          <span>焦点行可用 ↑↓，Enter 打开，Delete 删除</span>
+        </div>
+
+        <div class="batch-bar" id="batchBar" role="toolbar" aria-label="批量操作">
+          <span class="count" id="batchCount">已选 0</span>
+          <span class="divider"></span>
+          <button type="button" id="batchCopy">复制单号</button>
+          <button type="button" id="batchMark">标为完成</button>
+          <button type="button" class="danger" id="batchDelete">删除</button>
+          <span class="divider"></span>
+          <button type="button" id="batchClear">取消</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="keys">
+      <div class="head">
+        <h2>快捷键</h2>
+        <code>keyboard</code>
+      </div>
+      <div class="stage" style="padding:18px 20px">
+        <p class="hint" style="margin:0">
+          表格区域获焦后：
+          <span class="kbd">↑</span><span class="kbd">↓</span> 移动焦点 ·
+          <span class="kbd">Space</span> 切换选中 ·
+          <span class="kbd">Enter</span> 打开详情提示 ·
+          <span class="kbd">Delete</span> / <span class="kbd">Backspace</span> 删除焦点行 ·
+          <span class="kbd">Esc</span> 清空选中 / 退出编辑
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-host" id="toasts" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const STATUS_LABEL = {
+        ok: "已完成",
+        warn: "处理中",
+        err: "异常",
+      };
+
+      const NAMES = ["林晓", "周然", "陈可", "王宁", "赵衡", "孙悦", "李陌", "许晴", "何舟", "高远", "唐薇", "邓松"];
+      const CITIES = ["杭州", "上海", "深圳", "成都", "北京", "苏州", "武汉", "西安"];
+
+      // 生成演示数据
+      let seed = 1;
+      const rand = () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      };
+
+      let rows = Array.from({ length: 24 }, (_, i) => {
+        const statusRoll = rand();
+        const status = statusRoll > 0.78 ? "err" : statusRoll > 0.45 ? "warn" : "ok";
+        return {
+          id: `r${i + 1}`,
+          name: NAMES[i % NAMES.length],
+          order: `SO-2026${String(1000 + i)}`,
+          city: CITIES[i % CITIES.length],
+          amount: Math.round(80 + rand() * 4200),
+          status,
+          updated: `09-${String(12 + (i % 8)).padStart(2, "0")} ${10 + (i % 8)}:${String((i * 7) % 60).padStart(2, "0")}`,
+        };
+      });
+
+      const state = {
+        selected: new Set(),
+        lastClickedIndex: null,
+        focusId: null,
+        sortKey: "name",
+        sortDir: "asc", // asc | desc | none
+        query: "",
+        statusFilter: "all",
+        density: "default",
+        undoGen: 0,
+        navArmed: false,
+      };
+
+      const els = {
+        stage: document.getElementById("stage"),
+        tbody: document.getElementById("tbody"),
+        empty: document.getElementById("empty"),
+        checkAll: document.getElementById("checkAll"),
+        search: document.getElementById("search"),
+        chips: document.getElementById("chips"),
+        clearFilters: document.getElementById("clearFilters"),
+        emptyClear: document.getElementById("emptyClear"),
+        metaCount: document.getElementById("metaCount"),
+        batchBar: document.getElementById("batchBar"),
+        batchCount: document.getElementById("batchCount"),
+        shell: document.getElementById("shell"),
+        scroll: document.getElementById("scroll"),
+        toasts: document.getElementById("toasts"),
+        statusFilterBtn: document.getElementById("statusFilterBtn"),
+        statusFilterPop: document.getElementById("statusFilterPop"),
+      };
+
+      function money(n) {
+        return `¥${n.toLocaleString("zh-CN")}`;
+      }
+
+      function visibleRows() {
+        let list = rows.slice();
+        const q = state.query.trim().toLowerCase();
+        if (q) {
+          list = list.filter(
+            (r) =>
+              r.name.toLowerCase().includes(q) ||
+              r.order.toLowerCase().includes(q) ||
+              r.city.toLowerCase().includes(q)
+          );
+        }
+        if (state.statusFilter !== "all") {
+          list = list.filter((r) => r.status === state.statusFilter);
+        }
+        if (state.sortDir !== "none" && state.sortKey) {
+          const dir = state.sortDir === "asc" ? 1 : -1;
+          const key = state.sortKey;
+          list.sort((a, b) => {
+            const va = a[key];
+            const vb = b[key];
+            if (typeof va === "number") return (va - vb) * dir;
+            return String(va).localeCompare(String(vb), "zh") * dir;
+          });
+        }
+        return list;
+      }
+
+      function renderChips() {
+        const chips = [];
+        if (state.query.trim()) {
+          chips.push({ id: "q", label: `搜索：${state.query.trim()}`, clear: () => {
+            state.query = "";
+            els.search.value = "";
+          }});
+        }
+        if (state.statusFilter !== "all") {
+          chips.push({
+            id: "st",
+            label: `状态：${STATUS_LABEL[state.statusFilter]}`,
+            clear: () => { state.statusFilter = "all"; syncFilterPop(); },
+          });
+        }
+        els.chips.innerHTML = chips
+          .map(
+            (c) =>
+              `<span class="chip">${c.label}<button type="button" data-chip="${c.id}" aria-label="移除">×</button></span>`
+          )
+          .join("");
+        els.clearFilters.hidden = chips.length === 0;
+        els.chips.querySelectorAll("[data-chip]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const chip = chips.find((c) => c.id === btn.dataset.chip);
+            chip?.clear();
+            render();
+          });
+        });
+      }
+
+      function syncFilterPop() {
+        els.statusFilterPop.querySelectorAll("button").forEach((b) => {
+          b.classList.toggle("active", b.dataset.status === state.statusFilter);
+        });
+        const label =
+          state.statusFilter === "all"
+            ? "状态筛选 ▾"
+            : `状态：${STATUS_LABEL[state.statusFilter]} ▾`;
+        els.statusFilterBtn.textContent = label;
+      }
+
+      function updateBatchBar() {
+        const n = state.selected.size;
+        els.batchCount.textContent = `已选 ${n}`;
+        els.batchBar.classList.toggle("show", n > 0);
+      }
+
+      /** 接管键盘导航（不依赖焦点是否还在 shell 上） */
+      function armNav() {
+        state.navArmed = true;
+        els.shell.classList.add("nav-armed");
+        // 延后聚焦，避免 mousedown 后 checkbox/button 再抢焦点
+        requestAnimationFrame(() => {
+          els.shell.focus({ preventScroll: true });
+        });
+      }
+
+      function disarmNav() {
+        state.navArmed = false;
+        els.shell.classList.remove("nav-armed");
+      }
+
+      /** 是否在可输入控件内（此时不拦截方向键） */
+      function isTypingTarget(el) {
+        if (!el || el === document.body) return false;
+        if (el.closest?.(".cell-edit.editing")) return true;
+        if (el === els.search || el.closest?.("#search")) return true;
+        const tag = el.tagName;
+        if (tag === "TEXTAREA" || tag === "SELECT") return true;
+        if (tag === "INPUT") {
+          const type = (el.type || "").toLowerCase();
+          // 行内 checkbox 不参与打字，仍走表格快捷键
+          if (type === "checkbox" || type === "radio" || type === "button") return false;
+          return true;
+        }
+        if (el.isContentEditable) return true;
+        return false;
+      }
+
+      /** 只滚内层 scroll，不用 scrollIntoView */
+      function ensureRowVisible(tr) {
+        if (!tr) return;
+        const port = els.scroll;
+        const headH = port.querySelector("thead")?.offsetHeight || 40;
+        const portRect = port.getBoundingClientRect();
+        const trRect = tr.getBoundingClientRect();
+        if (trRect.top < portRect.top + headH) {
+          port.scrollTop -= portRect.top + headH - trRect.top;
+        } else if (trRect.bottom > portRect.bottom) {
+          port.scrollTop += trRect.bottom - portRect.bottom;
+        }
+      }
+
+      function moveFocusBy(delta, { extend = false } = {}) {
+        const list = visibleRows();
+        if (!list.length) return;
+        let idx = list.findIndex((r) => r.id === state.focusId);
+        if (idx < 0) idx = delta > 0 ? -1 : 0;
+        idx = Math.max(0, Math.min(list.length - 1, idx + delta));
+        state.focusId = list[idx].id;
+        if (extend) state.selected.add(state.focusId);
+        render();
+        armNav();
+        ensureRowVisible(
+          els.tbody.querySelector(`tr[data-id="${state.focusId}"]`)
+        );
+      }
+
+      function updateCheckAll(list) {
+        const ids = list.map((r) => r.id);
+        const selectedVisible = ids.filter((id) => state.selected.has(id));
+        els.checkAll.checked = ids.length > 0 && selectedVisible.length === ids.length;
+        els.checkAll.indeterminate =
+          selectedVisible.length > 0 && selectedVisible.length < ids.length;
+      }
+
+      function render() {
+        const list = visibleRows();
+        renderChips();
+        syncFilterPop();
+        els.metaCount.textContent = `${list.length} 条${
+          list.length !== rows.length ? `（共 ${rows.length}）` : ""
+        }`;
+
+        // 清理已不存在的选中
+        const allIds = new Set(rows.map((r) => r.id));
+        [...state.selected].forEach((id) => {
+          if (!allIds.has(id)) state.selected.delete(id);
+        });
+
+        if (!list.length) {
+          els.tbody.innerHTML = "";
+          els.empty.classList.add("show");
+          updateBatchBar();
+          updateCheckAll(list);
+          return;
+        }
+        els.empty.classList.remove("show");
+
+        els.tbody.innerHTML = list
+          .map((r) => {
+            const selected = state.selected.has(r.id);
+            const focused = state.focusId === r.id;
+            return `
+              <tr data-id="${r.id}" class="${selected ? "selected" : ""} ${focused ? "focus-row" : ""}">
+                <td class="col-check">
+                  <input class="check row-check" type="checkbox" tabindex="-1" ${selected ? "checked" : ""} aria-label="选择 ${r.name}" />
+                </td>
+                <td class="col-name">${r.name}</td>
+                <td><code style="font-family:var(--mono);font-size:12px">${r.order}</code></td>
+                <td>${r.city}</td>
+                <td>
+                  <span class="cell-edit" data-edit="amount" title="双击编辑">${money(r.amount)}</span>
+                </td>
+                <td><span class="status ${r.status}">${STATUS_LABEL[r.status]}</span></td>
+                <td style="color:var(--muted)">${r.updated}</td>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <button type="button" class="act-open" tabindex="-1">打开</button>
+                    <button type="button" class="act-del danger" tabindex="-1">删除</button>
+                  </div>
+                </td>
+              </tr>`;
+          })
+          .join("");
+
+        updateBatchBar();
+        updateCheckAll(list);
+        bindRowEvents(list);
+      }
+
+      function rowIndexInVisible(id) {
+        return visibleRows().findIndex((r) => r.id === id);
+      }
+
+      function toggleSelect(id, { additive = false, range = false } = {}) {
+        const list = visibleRows();
+        const idx = list.findIndex((r) => r.id === id);
+        if (idx < 0) return;
+
+        if (range && state.lastClickedIndex != null) {
+          const [a, b] = [state.lastClickedIndex, idx].sort((x, y) => x - y);
+          if (!additive) state.selected.clear();
+          for (let i = a; i <= b; i++) state.selected.add(list[i].id);
+        } else if (additive) {
+          if (state.selected.has(id)) state.selected.delete(id);
+          else state.selected.add(id);
+          state.lastClickedIndex = idx;
+        } else {
+          const onlyThis = state.selected.size === 1 && state.selected.has(id);
+          state.selected.clear();
+          if (!onlyThis) state.selected.add(id);
+          state.lastClickedIndex = idx;
+        }
+        state.focusId = id;
+        render();
+      }
+
+      function bindRowEvents(list) {
+        els.tbody.querySelectorAll("tr").forEach((tr) => {
+          const id = tr.dataset.id;
+
+          tr.addEventListener("click", (e) => {
+            if (e.target.closest(".cell-edit.editing")) return;
+            if (e.target.closest(".row-actions")) return;
+            if (e.target.classList.contains("row-check")) return;
+            const additive = e.metaKey || e.ctrlKey;
+            const range = e.shiftKey;
+            toggleSelect(id, { additive, range });
+            armNav();
+          });
+
+          tr.querySelector(".row-check")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const range = e.shiftKey;
+            if (range && state.lastClickedIndex != null) {
+              toggleSelect(id, { additive: e.metaKey || e.ctrlKey, range: true });
+            } else {
+              if (state.selected.has(id)) state.selected.delete(id);
+              else state.selected.add(id);
+              state.lastClickedIndex = rowIndexInVisible(id);
+              state.focusId = id;
+              render();
+            }
+            armNav();
+          });
+
+          tr.querySelector(".act-open")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const row = rows.find((r) => r.id === id);
+            toast(`打开 ${row.order}（示意）`);
+          });
+
+          tr.querySelector(".act-del")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            deleteRows([id]);
+          });
+
+          const edit = tr.querySelector("[data-edit]");
+          edit?.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            startEdit(edit, id);
+          });
+        });
+      }
+
+      function startEdit(cell, id) {
+        const row = rows.find((r) => r.id === id);
+        if (!row || cell.classList.contains("editing")) return;
+        cell.classList.add("editing");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.value = String(row.amount);
+        input.setAttribute("aria-label", "编辑金额");
+        cell.textContent = "";
+        cell.appendChild(input);
+        input.focus();
+        input.select();
+
+        const commit = () => {
+          const next = Number(input.value);
+          if (!Number.isFinite(next) || next < 0) {
+            cell.classList.remove("editing");
+            cell.textContent = money(row.amount);
+            toast("金额无效，已还原");
+            return;
+          }
+          row.amount = Math.round(next);
+          cell.classList.remove("editing");
+          cell.textContent = money(row.amount);
+          const tr = cell.closest("tr");
+          tr?.classList.add("flash");
+          setTimeout(() => tr?.classList.remove("flash"), 520);
+          toast(`已更新 ${row.order} → ${money(row.amount)}`);
+        };
+        const cancel = () => {
+          cell.classList.remove("editing");
+          cell.textContent = money(row.amount);
+        };
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancel();
+          } else if (e.key === "Tab") {
+            e.preventDefault();
+            commit();
+            // 跳到下一行同列编辑
+            const list = visibleRows();
+            const idx = list.findIndex((r) => r.id === id);
+            const next = list[idx + (e.shiftKey ? -1 : 1)];
+            if (next) {
+              render();
+              const nextCell = els.tbody.querySelector(`tr[data-id="${next.id}"] [data-edit]`);
+              if (nextCell) startEdit(nextCell, next.id);
+            }
+          }
+        });
+        input.addEventListener("blur", () => {
+          if (cell.classList.contains("editing")) commit();
+        });
+      }
+
+      function deleteRows(ids) {
+        const snapshot = rows.filter((r) => ids.includes(r.id)).map((r) => ({ ...r }));
+        if (!snapshot.length) return;
+
+        ids.forEach((id) => {
+          const tr = els.tbody.querySelector(`tr[data-id="${id}"]`);
+          tr?.classList.add("removing");
+        });
+
+        const gen = ++state.undoGen;
+        setTimeout(() => {
+          rows = rows.filter((r) => !ids.includes(r.id));
+          ids.forEach((id) => state.selected.delete(id));
+          if (ids.includes(state.focusId)) state.focusId = null;
+          render();
+          undoToast(`已删除 ${snapshot.length} 条`, () => {
+            // 仅当仍是最新一次删除世代时允许撤销
+            if (gen !== state.undoGen) return;
+            rows = [...snapshot, ...rows];
+            rows.sort((a, b) => a.order.localeCompare(b.order));
+            render();
+            toast("已撤销删除");
+          });
+        }, 260);
+      }
+
+      function toast(msg) {
+        const el = document.createElement("div");
+        el.className = "toast";
+        el.innerHTML = `<span class="msg">${msg}</span>`;
+        els.toasts.appendChild(el);
+        setTimeout(() => el.remove(), 2200);
+      }
+
+      function undoToast(msg, onUndo) {
+        const duration = 5000;
+        const el = document.createElement("div");
+        el.className = "toast";
+        el.innerHTML = `
+          <svg class="timer" viewBox="0 0 28 28" aria-hidden="true">
+            <circle class="track" cx="14" cy="14" r="12"></circle>
+            <circle class="prog" cx="14" cy="14" r="12"></circle>
+          </svg>
+          <span class="msg">${msg}</span>
+          <button type="button">撤销</button>`;
+        const prog = el.querySelector(".prog");
+        prog.style.transitionDuration = `${duration}ms`;
+        requestAnimationFrame(() => {
+          prog.style.strokeDashoffset = "75.4";
+        });
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          el.remove();
+        };
+        el.querySelector("button").addEventListener("click", () => {
+          finish();
+          onUndo();
+        });
+        els.toasts.appendChild(el);
+        setTimeout(finish, duration);
+      }
+
+      // —— 表头排序 ——
+      document.querySelectorAll("th.sortable").forEach((th) => {
+        th.addEventListener("click", (e) => {
+          if (e.target.closest(".col-resizer")) return;
+          const key = th.dataset.key;
+          if (state.sortKey === key) {
+            state.sortDir =
+              state.sortDir === "asc" ? "desc" : state.sortDir === "desc" ? "none" : "asc";
+          } else {
+            state.sortKey = key;
+            state.sortDir = "asc";
+          }
+          document.querySelectorAll("th.sortable").forEach((t) => {
+            t.classList.toggle("sorted", t.dataset.key === state.sortKey && state.sortDir !== "none");
+            const icon = t.querySelector(".sort-icon");
+            if (t.dataset.key === state.sortKey && state.sortDir !== "none") {
+              icon.textContent = state.sortDir === "asc" ? "↑" : "↓";
+            } else {
+              icon.textContent = "↕";
+            }
+          });
+          render();
+        });
+      });
+
+      // —— 列宽拖拽 ——
+      let resizing = null;
+      document.querySelectorAll(".col-resizer").forEach((handle) => {
+        handle.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const th = handle.closest("th");
+          resizing = {
+            th,
+            startX: e.clientX,
+            startW: th.getBoundingClientRect().width,
+          };
+          handle.classList.add("active");
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        });
+      });
+      window.addEventListener("mousemove", (e) => {
+        if (!resizing) return;
+        const w = Math.max(64, resizing.startW + (e.clientX - resizing.startX));
+        resizing.th.style.width = `${w}px`;
+      });
+      window.addEventListener("mouseup", () => {
+        if (!resizing) return;
+        resizing.th.querySelector(".col-resizer")?.classList.remove("active");
+        resizing = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      });
+
+      // —— 全选 ——
+      els.checkAll.addEventListener("change", () => {
+        const list = visibleRows();
+        if (els.checkAll.checked) list.forEach((r) => state.selected.add(r.id));
+        else list.forEach((r) => state.selected.delete(r.id));
+        render();
+      });
+
+      // —— 搜索 ——
+      let searchTimer;
+      els.search.addEventListener("input", () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          state.query = els.search.value;
+          render();
+        }, 120);
+      });
+
+      // —— 状态筛选 ——
+      els.statusFilterBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        els.statusFilterPop.classList.toggle("open");
+      });
+      els.statusFilterPop.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.statusFilter = btn.dataset.status;
+          els.statusFilterPop.classList.remove("open");
+          render();
+        });
+      });
+      document.addEventListener("click", () => els.statusFilterPop.classList.remove("open"));
+
+      function clearAllFilters() {
+        state.query = "";
+        state.statusFilter = "all";
+        els.search.value = "";
+        render();
+      }
+      els.clearFilters.addEventListener("click", clearAllFilters);
+      els.emptyClear.addEventListener("click", clearAllFilters);
+
+      // —— 密度 ——
+      document.querySelectorAll(".density button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".density button").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          els.stage.classList.remove("density-compact", "density-comfortable");
+          if (btn.dataset.density === "compact") els.stage.classList.add("density-compact");
+          if (btn.dataset.density === "comfortable") els.stage.classList.add("density-comfortable");
+        });
+      });
+
+      // —— 批量 ——
+      document.getElementById("batchClear").addEventListener("click", () => {
+        state.selected.clear();
+        render();
+      });
+      document.getElementById("batchCopy").addEventListener("click", async () => {
+        const orders = rows.filter((r) => state.selected.has(r.id)).map((r) => r.order);
+        try {
+          await navigator.clipboard.writeText(orders.join("\n"));
+          toast(`已复制 ${orders.length} 个单号`);
+        } catch {
+          toast(orders.join(", "));
+        }
+      });
+      document.getElementById("batchMark").addEventListener("click", () => {
+        rows.forEach((r) => {
+          if (state.selected.has(r.id)) r.status = "ok";
+        });
+        const n = state.selected.size;
+        state.selected.clear();
+        render();
+        toast(`已将 ${n} 条标为完成`);
+      });
+      document.getElementById("batchDelete").addEventListener("click", () => {
+        deleteRows([...state.selected]);
+      });
+
+      // —— 键盘：document 捕获 + 点行后 arm，不依赖焦点落在可滚动层 ——
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          if (!state.navArmed) return;
+          if (isTypingTarget(e.target)) return;
+
+          const list = visibleRows();
+          if (!list.length) return;
+
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            e.stopPropagation();
+            moveFocusBy(e.key === "ArrowDown" ? 1 : -1, { extend: e.shiftKey });
+            return;
+          }
+
+          let idx = list.findIndex((r) => r.id === state.focusId);
+          if (idx < 0) idx = 0;
+
+          if (e.key === " " || e.key === "Spacebar") {
+            e.preventDefault();
+            e.stopPropagation();
+            const id = list[idx].id;
+            if (state.selected.has(id)) state.selected.delete(id);
+            else state.selected.add(id);
+            state.focusId = id;
+            state.lastClickedIndex = idx;
+            render();
+            armNav();
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            const row = list[idx];
+            state.focusId = row.id;
+            toast(`打开 ${row.order}（示意）`);
+          } else if (e.key === "Delete" || e.key === "Backspace") {
+            e.preventDefault();
+            const targets = state.selected.size ? [...state.selected] : [list[idx].id];
+            deleteRows(targets);
+            armNav();
+          } else if (e.key === "Escape") {
+            state.selected.clear();
+            disarmNav();
+            render();
+          } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+            e.preventDefault();
+            list.forEach((r) => state.selected.add(r.id));
+            render();
+            armNav();
+          }
+        },
+        true
+      );
+
+      // 点表格内层接管；点外部或搜索框则释放
+      document.addEventListener(
+        "mousedown",
+        (e) => {
+          const t = e.target;
+          if (t.closest?.(".search") || t === els.search) {
+            disarmNav();
+            return;
+          }
+          if (els.shell.contains(t) || els.batchBar.contains(t)) {
+            armNav();
+            return;
+          }
+          if (!els.stage.contains(t)) {
+            disarmNav();
+          }
+        },
+        true
+      );
+
+      // 内层滚动时禁止方向键默认行为泄漏（保险）
+      els.scroll.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ") {
+            e.preventDefault();
+          }
+        },
+        true
+      );
+
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -35,10 +35,14 @@ skill-sapce/
 │   │   ├── SKILL.md
 │   │   ├── components.md
 │   │   └── demo.html         # 交互示意，非业务最终样式
-│   └── feedback-states/      # 操作反馈模式
+│   ├── feedback-states/      # 操作反馈模式
+│   │   ├── SKILL.md
+│   │   ├── patterns.md
+│   │   └── demo.html         # 交互示意，非业务最终样式
+│   └── data-table-interactions/  # 表格操作交互
 │       ├── SKILL.md
 │       ├── patterns.md
-│       └── demo.html         # 交互示意，非业务最终样式
+│       └── demo.html
 ├── frontend/
 │   └── .gitkeep
 ├── backend/
@@ -69,6 +73,7 @@ skill-sapce/
 | `ui/` | [`soft-card-ui`](./ui/soft-card-ui/) | Soft Card / 物流 App 风跨端 UI | 提到 soft-card、物流追踪风、大圆角卡片、tracking UI |
 | `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 九个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大、下拉摘要、甩出删除、共享元素、长按进度环 |
 | `ui/` | [`feedback-states`](./ui/feedback-states/) | 操作反馈模式库 | 加载骨架、Toast、乐观更新、空状态、错误重试、按钮忙态、危险确认/滑满确认、页顶 Banner、Undo 倒计时 |
+| `ui/` | [`data-table-interactions`](./ui/data-table-interactions/) | 表格操作交互 | 行选/连选、批量条、排序筛选 chip、列宽、冻结列、就地编辑、密度、键盘（焦点/滚动分离）、删除 Undo |
 
 ## 安装到 Cursor
 
