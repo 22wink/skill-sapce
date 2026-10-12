@@ -7,7 +7,7 @@
 ## 分类约定
 
 | 目录 | 放什么 |
-|------|--------|
+| ------ | -------- |
 | `ui/` | 设计系统、视觉语言、布局模式、动效规范；**demo 仅为示意，落地需适配项目组件库/设计风格**（见 [`ui/README.md`](./ui/README.md)） |
 | `frontend/` | 前端工程：框架约定、组件写法、样式工程 |
 | `backend/` | 后端 / API / 数据模型 |
@@ -70,10 +70,11 @@ skill-sapce/
 - **项目决定皮肤**：优先当前 UI 组件库与设计规范，禁止把 demo CSS 当品牌规范复制进业务。
 
 详见 [ui/README.md](./ui/README.md)。
+
 ## Skill 清单
 
 | 分类 | Skill | 用途 | 何时触发 |
-|------|-------|------|----------|
+| ------ | ------- | ------ | ---------- |
 | `ui/` | [`soft-card-ui`](./ui/soft-card-ui/) | Soft Card / 物流 App 风跨端 UI | 提到 soft-card、物流追踪风、大圆角卡片、tracking UI |
 | `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 九个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大、下拉摘要、甩出删除、共享元素、长按进度环 |
 | `ui/` | [`feedback-states`](./ui/feedback-states/) | 操作反馈模式库 | 加载骨架、Toast、乐观更新、空状态、错误重试、按钮忙态、危险确认/滑满确认、页顶 Banner、Undo 倒计时 |
@@ -84,9 +85,9 @@ skill-sapce/
 
 Cursor 会从下列目录加载 skills：
 
-| 范围 | 路径 |
-|------|------|
-| 个人全局 | `~/.cursor/skills/<skill-name>/` |
+| 范围       | 路径                                     |
+| ---------- | ---------------------------------------- |
+| 个人全局   | `~/.cursor/skills/<skill-name>/`         |
 | 仅当前项目 | `<project>/.cursor/skills/<skill-name>/` |
 
 兼容目录（可选）：`~/.agents/skills/`、`~/.claude/skills/`、`~/.codex/skills/`，以及项目内对应路径。
@@ -148,7 +149,7 @@ npx skills add 22wink/skill-sapce/ui/soft-card-ui --agent cursor
 ## 其他工具
 
 | 工具 | 个人目录 | 说明 |
-|------|----------|------|
+| ------ | ---------- | ------ |
 | Cursor | `~/.cursor/skills/` | 见上文 |
 | Claude Code | `~/.claude/skills/` | 同样需要每个 skill 一文件夹 + `SKILL.md` |
 | Codex | `~/.codex/skills/` | 同上 |
@@ -175,5 +176,5 @@ npx skills add 22wink/skill-sapce/ui/soft-card-ui --agent cursor
 
 ## 上游
 
-- Remote: git@github.com:22wink/skill-sapce.git
+- Remote: <git@github.com>:22wink/skill-sapce.git
 - Branch: `main`
