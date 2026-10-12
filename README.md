@@ -39,6 +39,10 @@ skill-sapce/
 │   │   ├── SKILL.md
 │   │   ├── patterns.md
 │   │   └── demo.html         # 交互示意，非业务最终样式
+│   ├── feed-loading/         # 信息流加载（同构骨架→错开浮现）
+│   │   ├── SKILL.md
+│   │   ├── patterns.md
+│   │   └── demo.html
 │   └── data-table-interactions/  # 表格操作交互
 │       ├── SKILL.md
 │       ├── patterns.md
@@ -73,6 +77,7 @@ skill-sapce/
 | `ui/` | [`soft-card-ui`](./ui/soft-card-ui/) | Soft Card / 物流 App 风跨端 UI | 提到 soft-card、物流追踪风、大圆角卡片、tracking UI |
 | `ui/` | [`micro-interactions`](./ui/micro-interactions/) | 九个手势微交互组件 | 重叠散开、填充进度、横向手风琴、组件托盘、跟手放大、下拉摘要、甩出删除、共享元素、长按进度环 |
 | `ui/` | [`feedback-states`](./ui/feedback-states/) | 操作反馈模式库 | 加载骨架、Toast、乐观更新、空状态、错误重试、按钮忙态、危险确认/滑满确认、页顶 Banner、Undo 倒计时 |
+| `ui/` | [`feed-loading`](./ui/feed-loading/) | 信息流 / 商品列表加载（12 模式） | 骨架扫光、预加载接卡、下拉刷新、瀑布流、双列错峰、筛选重载、Tab 保活、失败条、底骨架、粘性分类、回顶、悬停预取 |
 | `ui/` | [`data-table-interactions`](./ui/data-table-interactions/) | 表格操作交互 | 行选/连选、批量条、排序筛选 chip、列宽、冻结列、就地编辑、密度、键盘（焦点/滚动分离）、删除 Undo |
 
 ## 安装到 Cursor

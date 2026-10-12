@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feed Loading — 全模式演示</title>
+  <style>
+    :root {
+      --bg: #e9ece8; --ink: #1a1f1c; --muted: #5c675f;
+      --surface: #f7f8f5; --surface-2: #eef1ec;
+      --line: rgba(26,31,28,.09); --skel: #e2e7e1; --accent: #0f766e;
+      --err: #b91c1c; --shadow: 0 8px 24px rgba(26,31,28,.08);
+      --radius: 16px; --font: "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --ease: cubic-bezier(.22,1,.36,1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: var(--font); color: var(--ink);
+      background: radial-gradient(1000px 480px at 0% -10%, #dce5df, transparent 55%), var(--bg);
+    }
+    .page { width: min(780px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 96px; }
+    h1 { margin: 0 0 6px; font-size: 1.7rem; letter-spacing: -.02em; }
+    .lead { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+    .toc a {
+      text-decoration: none; color: var(--ink); background: var(--surface);
+      border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px;
+    }
+    .demo-block { margin-bottom: 36px; scroll-margin-top: 12px; }
+    .demo-block h2 { margin: 0 0 4px; font-size: 1rem; }
+    .hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    button, .btn {
+      font: inherit; border: 0; border-radius: 999px; padding: 8px 14px; min-height: 40px;
+      cursor: pointer; background: var(--ink); color: #fff;
+    }
+    button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .stage {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .scroll { height: 280px; overflow: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
+    .note { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--surface-2); position: sticky; top: 0; z-index: 5; }
+    button.chip, .chip {
+      border: 1px solid var(--line); background: #fff; color: var(--ink);
+      border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; min-height: 32px;
+    }
+    button.chip.is-on, .chip.is-on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    /* #1 */
+    .feed { display: grid; gap: 10px; position: relative; }
+    .feed.has-shimmer::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.55) 50%, transparent 60%);
+      background-size: 220% 100%; animation: sweep 1.5s linear infinite; mix-blend-mode: soft-light;
+    }
+    @keyframes sweep { to { background-position: -100% 0; } }
+    .card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow: hidden; }
+    .layer { display: grid; grid-template-columns: 40px 1fr; gap: 8px 10px; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; grid-row: 1 / span 2; }
+    .bar { height: 12px; border-radius: 6px; background: var(--skel); }
+    .media { grid-column: 1 / -1; height: 96px; border-radius: 10px; background: var(--skel); }
+    .skel .avatar { background: var(--skel); }
+    .skel-layer { transition: opacity .22s; }
+    .card.is-revealing .skel-layer { opacity: 0; }
+    .card.is-ready .skel-layer { display: none; }
+    .real-layer { position: absolute; inset: 12px; opacity: 0; }
+    .card.is-skeleton .real-layer { visibility: hidden; }
+    .card.is-revealing .real-layer, .card.is-ready .real-layer { visibility: visible; opacity: 1; }
+    .card.is-ready .real-layer { position: relative; inset: auto; }
+    .rise-block { opacity: 0; transform: translateY(8px); }
+    .card.is-revealing .rise-block { animation: rise .24s var(--ease) forwards; animation-delay: calc(var(--i,0) * 60ms); }
+    .card.is-ready .rise-block { opacity: 1; transform: none; animation: none; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+    .real-layer .avatar { display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 13px; }
+    .t { font-weight: 700; font-size: 13px; } .s { font-size: 11px; color: var(--muted); }
+
+    /* products / conveyor */
+    .product {
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+      opacity: 0; transform: translateY(-24px);
+    }
+    .product.is-in { animation: convey .45s var(--ease) forwards; animation-delay: calc(var(--i,0) * 50ms); }
+    .product.is-shown { opacity: 1; transform: none; animation: none; }
+    @keyframes convey { to { opacity: 1; transform: none; } }
+    .product-img { aspect-ratio: 1; display: grid; place-items: center; color: #fff; font-weight: 700; }
+    .product-body { padding: 8px; font-size: 12px; }
+    .product-body span { color: var(--accent); font-weight: 600; }
+
+    .footer { min-height: 44px; display: grid; place-items: center; font-size: 12px; color: var(--muted); padding: 8px; }
+    .dots { display: none; gap: 7px; }
+    .dots.is-on { display: flex; }
+    .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: .35; animation: bounce .9s ease-in-out infinite; }
+    .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+    @keyframes bounce { 40% { transform: translateY(-6px); opacity: 1; } }
+    .end-text, .err-bar { display: none; }
+    .end-text.is-on, .err-bar.is-on { display: block; }
+    .err-bar button { margin-left: 8px; min-height: 32px; padding: 4px 10px; font-size: 12px; }
+
+    /* #3 pull */
+    .pull-header {
+      height: 0; overflow: hidden; display: grid; place-items: center;
+      font-size: 12px; color: var(--muted); background: var(--surface-2);
+      transition: height .2s;
+    }
+    .pull-header.is-show { height: 48px; }
+
+    /* #4 masonry */
+    .masonry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+    .masonry-col { display: grid; gap: 8px; }
+    .m-card { border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); padding: 10px; font-size: 12px; opacity: 0; }
+    .m-card.is-in { animation: fadein .24s var(--ease) forwards; }
+    .m-card.is-shown { opacity: 1; }
+    @keyframes fadein { to { opacity: 1; } }
+
+    /* #7 tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); }
+    .tab { flex: 1; border: 0; border-radius: 0; background: transparent; color: var(--muted); min-height: 44px; }
+    .tab.is-on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); background: #fff; }
+
+    /* #10 sticky */
+    .cat-head {
+      position: sticky; top: 0; z-index: 2; background: #fff; border: 1px solid var(--line);
+      border-radius: 10px; padding: 8px 10px; font-weight: 700; font-size: 13px; margin: 8px 0 6px;
+    }
+    .cat-items { display: grid; gap: 6px; margin-bottom: 12px; }
+    .cat-item { padding: 10px; border-radius: 10px; background: var(--surface-2); font-size: 12px; }
+
+    /* #11 FAB */
+    .fab, button.fab {
+      position: fixed; right: 20px; bottom: 24px; width: 52px; height: 52px; border-radius: 50%;
+      background: var(--ink); color: #fff; border: 0;
+      box-shadow: 0 8px 24px rgba(26, 31, 28, 0.28);
+      display: none; place-items: center; font-size: 20px; line-height: 1;
+      z-index: 9999; cursor: pointer; padding: 0; min-height: 0;
+    }
+    .fab.is-on, button.fab.is-on { display: grid; }
+    .fab-demo {
+      position: relative;
+      height: 220px;
+    }
+    .fab-demo .scroll { height: 220px; }
+    .fab-local {
+      position: absolute; right: 12px; bottom: 12px; width: 44px; height: 44px;
+      border-radius: 50%; background: var(--ink); color: #fff; border: 0;
+      display: none; place-items: center; font-size: 18px; z-index: 6;
+      padding: 0; min-height: 0; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(26, 31, 28, 0.25);
+    }
+    .fab-local.is-on { display: grid; }
+
+    /* #12 */
+    .prefetch-hint { font-size: 11px; color: var(--accent); min-height: 16px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .feed.has-shimmer::after, .dots i { animation: none !important; }
+      .product.is-in, .rise-block, .m-card.is-in { animation: none !important; opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Feed Loading</h1>
+    <p class="lead">12 个同族模式示意。<strong>样式非业务规范</strong>——落地请适配项目组件库。</p>
+    <nav class="toc" id="toc"></nav>
+
+    <!-- 1 -->
+    <section class="demo-block" id="p1">
+      <h2>1. Feed skeleton reveal</h2>
+      <p class="hint">同构骨架 + 1.5s 光带 → 块 +60ms / ↑8px</p>
+      <div class="toolbar">
+        <button type="button" id="btn1">重新加载</button>
+      </div>
+      <div class="feed has-shimmer" id="feed1"></div>
+      <p class="note" id="n1">—</p>
+    </section>
+
+    <!-- 2 -->
+    <section class="demo-block" id="p2">
+      <h2>2. Product list prefetch</h2>
+      <p class="hint">距底约一屏预加载 · 三点 · 传送带接卡 · 没有更多了</p>
+      <div class="stage">
+        <div class="scroll" id="sc2">
+          <div class="grid2" id="list2"></div>
+          <div class="footer">
+            <div class="dots" id="dots2"><i></i><i></i><i></i></div>
+            <div class="end-text" id="end2">没有更多了</div>
+          </div>
+        </div>
+      </div>
+      <p class="note" id="n2">—</p>
+    </section>
+
+    <!-- 3 -->
+    <section class="demo-block" id="p3">
+      <h2>3. Pull to refresh</h2>
+      <p class="hint">在顶部下拉跟手，过约 60px 松手刷新（演示区）</p>
+      <div class="stage" id="pullStage">
+        <div class="pull-header" id="pullHeader">下拉刷新</div>
+        <div class="scroll" id="sc3">
+          <div id="list3"></div>
+        </div>
+      </div>
+      <p class="note" id="n3">—</p>
+    </section>
+
+    <!-- 4 -->
+    <section class="demo-block" id="p4">
+      <h2>4. Masonry fill</h2>
+      <p class="hint">新卡插入最短列 · 短淡入 · 不重排旧卡</p>
+      <div class="toolbar"><button type="button" class="secondary" id="btn4">再插入 2 张</button></div>
+      <div class="stage" style="padding:10px">
+        <div class="masonry" id="masonry">
+          <div class="masonry-col" data-col="0"></div>
+          <div class="masonry-col" data-col="1"></div>
+        </div>
+      </div>
+      <p class="note" id="n4">—</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="demo-block" id="p5">
+      <h2>5. Dual-column stagger</h2>
+      <p class="hint">之字形错峰 40ms · 可叠传送带</p>
+      <div class="toolbar"><button type="button" class="secondary" id="btn5">播放入场</button></div>
+      <div class="stage" style="padding:10px"><div class="grid2" id="list5"></div></div>
+      <p class="note" id="n5">—</p>
+    </section>
+
+    <!-- 6 -->
+    <section class="demo-block" id="p6">
+      <h2>6. Filter reload</h2>
+      <p class="hint">改筛选 → 淡出 → 同构骨架 → 浮现 · 平滑回顶</p>
+      <div class="stage">
+        <div class="chip-row">
+          <button type="button" class="chip is-on" data-filter="all">全部</button>
+          <button type="button" class="chip" data-filter="hot">热销</button>
+          <button type="button" class="chip" data-filter="new">上新</button>
+        </div>
+        <div class="scroll" id="sc6"><div class="grid2" id="list6"></div></div>
+      </div>
+      <p class="note" id="n6">—</p>
+    </section>
+
+    <!-- 7 -->
+    <section class="demo-block" id="p7">
+      <h2>7. Tab keep-alive</h2>
+      <p class="hint">切 Tab 保活；返回恢复滚动与已加载项</p>
+      <div class="stage">
+        <div class="tabs">
+          <button type="button" class="tab is-on" data-tab="a">频道 A</button>
+          <button type="button" class="tab" data-tab="b">频道 B</button>
+        </div>
+        <div class="scroll" id="sc7"><div id="list7"></div></div>
+      </div>
+      <p class="note" id="n7">—</p>
+    </section>
+
+    <!-- 8 -->
+    <section class="demo-block" id="p8">
+      <h2>8. Footer error bar</h2>
+      <p class="hint">下一页失败时底部「加载失败 · 重试」，列表不清空</p>
+      <div class="toolbar"><button type="button" class="secondary" id="btn8">模拟加载下一页（必失败）</button></div>
+      <div class="stage">
+        <div class="scroll" id="sc8">
+          <div class="grid2" id="list8"></div>
+          <div class="footer">
+            <div class="err-bar" id="err8">加载失败 · <button type="button" id="retry8">重试</button></div>
+            <div class="dots" id="dots8"><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+      <p class="note" id="n8">—</p>
+    </section>
+
+    <!-- 9 -->
+    <section class="demo-block" id="p9">
+      <h2>9. Bottom-only skeleton</h2>
+      <p class="hint">仅底部铺骨架；上方真卡不动</p>
+      <div class="toolbar"><button type="button" class="secondary" id="btn9">加载下一屏骨架</button></div>
+      <div class="stage">
+        <div class="scroll" id="sc9">
+          <div class="grid2" id="list9"></div>
+          <div class="grid2 feed has-shimmer" id="skel9" hidden></div>
+        </div>
+      </div>
+      <p class="note" id="n9">—</p>
+    </section>
+
+    <!-- 10 -->
+    <section class="demo-block" id="p10">
+      <h2>10. Sticky category</h2>
+      <p class="hint">段头吸顶；点 chip 平滑滚到对应分类（在下方框内）</p>
+      <div class="stage">
+        <div class="scroll" id="sc10" style="height:320px; padding: 0;">
+          <div class="chip-row" id="catChips" style="position: sticky; top: 0;"></div>
+          <div id="catBody" style="padding: 0 10px 12px;"></div>
+        </div>
+      </div>
+      <p class="note" id="n10">—</p>
+    </section>
+
+    <!-- 11 -->
+    <section class="demo-block" id="p11">
+      <h2>11. Back-to-top FAB</h2>
+      <p class="hint">在框内向下滚过约一屏后出现回顶钮；整页滚过约一屏时右下角也会出现全局 FAB（不重载）</p>
+      <div class="stage fab-demo">
+        <div class="scroll" id="sc11">
+          <div id="list11"></div>
+        </div>
+        <button type="button" class="fab-local" id="fabLocal" aria-label="列表回顶">↑</button>
+      </div>
+      <p class="note" id="n11">在上方框内向下滚动</p>
+    </section>
+
+    <!-- 12 -->
+    <section class="demo-block" id="p12">
+      <h2>12. Hover prefetch</h2>
+      <p class="hint">悬停约 200ms 预取；点击秒开缓存</p>
+      <div class="stage" style="padding:10px">
+        <div class="grid2" id="list12"></div>
+        <p class="prefetch-hint" id="prefHint">悬停卡片试试看</p>
+      </div>
+      <p class="note" id="n12">—</p>
+    </section>
+  </div>
+
+  <button type="button" class="fab" id="fab" aria-label="回到顶部">↑</button>
+
+  <script>
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, reduceMotion ? Math.min(ms, 60) : ms));
+    const colors = ["#0f766e","#1d4ed8","#b45309","#be123c","#7c3aed","#0e7490"];
+
+    // toc
+    const names = [
+      "1 骨架","2 预加载","3 下拉刷新","4 瀑布流","5 双列错峰","6 筛选重载",
+      "7 Tab保活","8 失败条","9 底骨架","10 粘性分类","11 回顶","12 悬停预取"
+    ];
+    document.getElementById("toc").innerHTML = names.map((t,i) =>
+      `<a href="#p${i+1}">${t}</a>`).join("");
+
+    function productEl(item, i) {
+      const el = document.createElement("article");
+      el.className = "product";
+      el.style.setProperty("--i", String(i));
+      el.innerHTML = `<div class="product-img" style="background:${item.color}">${item.tag}</div>
+        <div class="product-body"><strong>${item.title}</strong><div><span>¥${item.price}</span></div></div>`;
+      return el;
+    }
+    function showProduct(el, i) {
+      const done = () => { el.classList.add("is-shown"); el.classList.remove("is-in"); };
+      el.addEventListener("animationend", done, { once: true });
+      setTimeout(done, reduceMotion ? 0 : 50 * i + 500);
+      requestAnimationFrame(() => el.classList.add(reduceMotion ? "is-shown" : "is-in"));
+    }
+    function makeItems(start, count, prefix = "商品") {
+      return Array.from({ length: count }, (_, i) => {
+        const n = start + i;
+        return { tag: String(n).padStart(2,"0"), title: `${prefix} ${n}`, price: (19 + (n%13)*2).toFixed(2), color: colors[(n-1)%colors.length], id: n };
+      });
+    }
+
+    /* ===== 1 ===== */
+    (function () {
+      const feed = document.getElementById("feed1");
+      const n1 = document.getElementById("n1");
+      const posts = [
+        { name:"杭", title:"西湖晚班日报", sub:"准时率 96%", color:"#0f766e" },
+        { name:"浦", title:"浦东枢纽看板", sub:"异常 2 单", color:"#1d4ed8" },
+      ];
+      function skel(){return `<div class="layer skel skel-layer"><div class="avatar"></div><div class="bar" style="width:60%;margin-top:4px"></div><div class="bar" style="width:40%"></div><div class="media"></div></div>`;}
+      function real(p){return `<div class="layer real-layer">
+        <div class="avatar rise-block" style="--i:0;background:${p.color}">${p.name}</div>
+        <div class="rise-block" style="--i:1"><div class="t">${p.title}</div></div>
+        <div class="rise-block" style="--i:2"><div class="s">${p.sub}</div></div>
+        <div class="media rise-block" style="--i:3;background:linear-gradient(135deg,${p.color},#ccc)"></div>
+      </div>`;}
+      async function load() {
+        feed.classList.add("has-shimmer");
+        feed.innerHTML = posts.map(p=>`<article class="card is-skeleton">${skel()}${real(p)}</article>`).join("");
+        n1.textContent = "skeleton · 光带中";
+        await sleep(1200);
+        feed.classList.remove("has-shimmer");
+        [...feed.children].forEach(c=>{c.classList.remove("is-skeleton");c.classList.add("is-revealing");});
+        n1.textContent = "revealing";
+        await sleep(reduceMotion?50:400);
+        [...feed.children].forEach(c=>{c.classList.remove("is-revealing");c.classList.add("is-ready");});
+        n1.textContent = "ready";
+      }
+      document.getElementById("btn1").onclick = load;
+      load();
+    })();
+
+    /* ===== 2 ===== */
+    (function () {
+      const sc = document.getElementById("sc2"), list = document.getElementById("list2");
+      const dots = document.getElementById("dots2"), end = document.getElementById("end2"), note = document.getElementById("n2");
+      let page=0, loading=false, hasMore=true, total=0;
+      const TOTAL=3;
+      function foot(){ dots.classList.toggle("is-on", loading); end.classList.toggle("is-on", !hasMore && !loading); }
+      async function next(){
+        if(loading||!hasMore) return;
+        loading=true; foot(); note.textContent=`loading 第 ${page+1} 页`;
+        await sleep(600);
+        page++; const items=makeItems(total+1,6); total+=items.length; hasMore=page<TOTAL;
+        items.forEach((it,i)=>{ const el=productEl(it,i); list.appendChild(el); showProduct(el,i); });
+        loading=false; foot();
+        note.textContent = hasMore ? `idle · ${page}/${TOTAL}` : "end · 没有更多了";
+      }
+      sc.addEventListener("scroll", ()=>{
+        const d=sc.scrollHeight-sc.scrollTop-sc.clientHeight;
+        if(d<=sc.clientHeight) next();
+      }, {passive:true});
+      next();
+    })();
+
+    /* ===== 3 pull ===== */
+    (function () {
+      const sc = document.getElementById("sc3"), header = document.getElementById("pullHeader");
+      const list = document.getElementById("list3"), note = document.getElementById("n3");
+      let items = makeItems(1, 8, "行");
+      function paint(arr){ list.innerHTML = arr.map(it=>`<div class="cat-item">${it.title} · ¥${it.price}</div>`).join(""); }
+      paint(items); note.textContent = "在顶部下拉";
+      let startY=0, pulling=false, dist=0;
+      sc.addEventListener("pointerdown", e=>{ if(sc.scrollTop<=0){ pulling=true; startY=e.clientY; dist=0; }});
+      sc.addEventListener("pointermove", e=>{
+        if(!pulling) return;
+        dist = Math.max(0, e.clientY-startY);
+        if(dist>8){ header.classList.add("is-show"); header.textContent = dist>60 ? "松手刷新" : "下拉刷新"; }
+      });
+      async function endPull(){
+        if(!pulling) return; pulling=false;
+        if(dist>60){
+          header.textContent="刷新中…"; note.textContent="refreshing";
+          await sleep(800);
+          items = makeItems(100+Math.floor(Math.random()*50), 8, "新");
+          paint(items);
+          header.textContent="已更新"; note.textContent="ready · 未闪白整页";
+          await sleep(400);
+        }
+        header.classList.remove("is-show"); dist=0;
+      }
+      sc.addEventListener("pointerup", endPull);
+      sc.addEventListener("pointercancel", endPull);
+    })();
+
+    /* ===== 4 masonry ===== */
+    (function () {
+      const cols = [...document.querySelectorAll("#masonry .masonry-col")];
+      const note = document.getElementById("n4");
+      let n = 0;
+      function heights(){ return cols.map(c=>c.getBoundingClientRect().height); }
+      function insert(count){
+        for(let k=0;k<count;k++){
+          n++;
+          const h = 56 + (n*17)%80;
+          const el = document.createElement("div");
+          el.className = "m-card";
+          el.style.minHeight = h+"px";
+          el.textContent = `卡片 ${n} · ${h}px`;
+          const hs = heights();
+          const idx = hs[0] <= hs[1] ? 0 : 1;
+          cols[idx].appendChild(el);
+          requestAnimationFrame(()=>el.classList.add(reduceMotion?"is-shown":"is-in"));
+          setTimeout(()=>{el.classList.add("is-shown");el.classList.remove("is-in");}, 300);
+          note.textContent = `插入列 ${idx+1}（最短）`;
+        }
+      }
+      insert(4);
+      document.getElementById("btn4").onclick = ()=>insert(2);
+    })();
+
+    /* ===== 5 dual stagger ===== */
+    (function () {
+      const list = document.getElementById("list5"), note = document.getElementById("n5");
+      function play(){
+        list.innerHTML="";
+        const items = makeItems(1,6);
+        // 之字形 index: 0L 1R 2L 3R...
+        items.forEach((it,i)=>{
+          const el = productEl(it, i); // delay uses i * 50, close enough; use 40ms via style
+          el.style.setProperty("--i", String(i));
+          el.style.animationDuration = ".45s";
+          list.appendChild(el);
+          showProduct(el, i);
+        });
+        note.textContent = "之字形错峰入场";
+      }
+      document.getElementById("btn5").onclick = play;
+      play();
+    })();
+
+    /* ===== 6 filter ===== */
+    (function () {
+      const list = document.getElementById("list6"), sc = document.getElementById("sc6"), note = document.getElementById("n6");
+      const data = {
+        all: makeItems(1,6),
+        hot: makeItems(20,4,"热销"),
+        new: makeItems(40,4,"上新"),
+      };
+      async function apply(key){
+        note.textContent = "fading_out";
+        list.style.opacity = "0.35";
+        await sleep(180);
+        list.innerHTML = "";
+        // skeleton
+        list.innerHTML = Array.from({length:4}).map(()=>`<div class="card is-skeleton"><div class="layer skel"><div class="avatar"></div><div class="bar" style="width:70%"></div><div class="bar" style="width:40%"></div><div class="media"></div></div></div>`).join("");
+        list.style.opacity = "1";
+        note.textContent = "skeleton";
+        sc.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+        await sleep(700);
+        list.innerHTML = "";
+        data[key].forEach((it,i)=>{ const el=productEl(it,i); list.appendChild(el); showProduct(el,i); });
+        note.textContent = `ready · filter=${key}`;
+      }
+      document.querySelectorAll("#p6 .chip").forEach(chip=>{
+        chip.onclick = ()=>{
+          document.querySelectorAll("#p6 .chip").forEach(c=>c.classList.remove("is-on"));
+          chip.classList.add("is-on");
+          apply(chip.dataset.filter);
+        };
+      });
+      apply("all");
+    })();
+
+    /* ===== 7 tabs keep-alive ===== */
+    (function () {
+      const sc = document.getElementById("sc7"), list = document.getElementById("list7"), note = document.getElementById("n7");
+      const cache = {
+        a: { items: makeItems(1,12,"A"), scrollTop: 0 },
+        b: { items: makeItems(50,16,"B"), scrollTop: 0 },
+      };
+      let cur = "a";
+      function paint(key){
+        const c = cache[key];
+        list.innerHTML = c.items.map(it=>`<div class="cat-item">${it.title}</div>`).join("");
+        sc.scrollTop = c.scrollTop;
+        note.textContent = `Tab ${key.toUpperCase()} · scrollTop=${Math.round(c.scrollTop)} · 已保活`;
+      }
+      sc.addEventListener("scroll", ()=>{ cache[cur].scrollTop = sc.scrollTop; }, {passive:true});
+      document.querySelectorAll("#p7 .tab").forEach(tab=>{
+        tab.onclick = ()=>{
+          cache[cur].scrollTop = sc.scrollTop;
+          document.querySelectorAll("#p7 .tab").forEach(t=>t.classList.remove("is-on"));
+          tab.classList.add("is-on");
+          cur = tab.dataset.tab;
+          paint(cur);
+        };
+      });
+      paint("a");
+    })();
+
+    /* ===== 8 error bar ===== */
+    (function () {
+      const list = document.getElementById("list8"), err = document.getElementById("err8");
+      const dots = document.getElementById("dots8"), note = document.getElementById("n8");
+      let items = makeItems(1,4);
+      function paint(){ list.innerHTML=""; items.forEach((it,i)=>{const el=productEl(it,i);list.appendChild(el);showProduct(el,i);}); }
+      paint(); note.textContent = "已有列表 · 点按钮模拟失败";
+      async function failLoad(){
+        err.classList.remove("is-on"); dots.classList.add("is-on"); note.textContent="loading";
+        await sleep(700);
+        dots.classList.remove("is-on"); err.classList.add("is-on");
+        note.textContent = "error · 列表未清空";
+      }
+      document.getElementById("btn8").onclick = failLoad;
+      document.getElementById("retry8").onclick = async ()=>{
+        err.classList.remove("is-on"); dots.classList.add("is-on"); note.textContent="retry…";
+        await sleep(600);
+        dots.classList.remove("is-on");
+        const more = makeItems(items.length+1, 2);
+        more.forEach((it,i)=>{ const el=productEl(it,i); list.appendChild(el); showProduct(el,i); });
+        items = items.concat(more);
+        note.textContent = "retry ok · 已追加";
+      };
+    })();
+
+    /* ===== 9 bottom skeleton ===== */
+    (function () {
+      const list = document.getElementById("list9"), skel = document.getElementById("skel9"), note = document.getElementById("n9");
+      makeItems(1,4).forEach((it,i)=>{ const el=productEl(it,i); list.appendChild(el); showProduct(el,i); });
+      note.textContent = "上方真卡已在";
+      document.getElementById("btn9").onclick = async ()=>{
+        skel.hidden = false;
+        skel.classList.add("has-shimmer");
+        skel.innerHTML = Array.from({length:4}).map(()=>`<div class="card"><div class="layer skel"><div class="avatar"></div><div class="bar" style="width:60%"></div><div class="bar" style="width:40%"></div><div class="media"></div></div></div>`).join("");
+        note.textContent = "底部骨架中 · 上方不动";
+        await sleep(900);
+        skel.hidden = true; skel.innerHTML=""; skel.classList.remove("has-shimmer");
+        makeItems(5,4).forEach((it,i)=>{ const el=productEl(it,i); list.appendChild(el); showProduct(el,i); });
+        note.textContent = "底骨架 → 传送带真卡";
+      };
+    })();
+
+    /* ===== 10 sticky category ===== */
+    (function () {
+      const sc = document.getElementById("sc10");
+      const chips = document.getElementById("catChips");
+      const body = document.getElementById("catBody");
+      const note = document.getElementById("n10");
+      const cats = ["数码", "服饰", "食品", "家居"];
+
+      function offsetInScroller(el, scroller) {
+        const scRect = scroller.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        return scroller.scrollTop + (elRect.top - scRect.top);
+      }
+
+      chips.innerHTML = cats.map((c, i) =>
+        `<button type="button" class="chip${i === 0 ? " is-on" : ""}" data-i="${i}">${c}</button>`
+      ).join("");
+      body.innerHTML = cats.map((c, i) => `
+        <div class="cat-section" data-i="${i}">
+          <div class="cat-head" id="cat-${i}">${c}</div>
+          <div class="cat-items">${Array.from({ length: 6 }).map((_, j) =>
+            `<div class="cat-item">${c}商品 ${j + 1}</div>`
+          ).join("")}</div>
+        </div>
+      `).join("");
+
+      // 段头吸顶时避开 chip 行高度
+      const chipH = () => chips.getBoundingClientRect().height || 44;
+      body.querySelectorAll(".cat-head").forEach((h) => {
+        h.style.top = chipH() + "px";
+      });
+
+      chips.querySelectorAll(".chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          chips.querySelectorAll(".chip").forEach((c) => c.classList.remove("is-on"));
+          chip.classList.add("is-on");
+          const el = document.getElementById("cat-" + chip.dataset.i);
+          if (!el) return;
+          // 滚到段头刚好在 sticky chip 下方
+          const y = offsetInScroller(el, sc) - chipH() - 4;
+          sc.scrollTo({ top: Math.max(0, y), behavior: reduceMotion ? "auto" : "smooth" });
+          note.textContent = `已跳到「${chip.textContent.trim()}」`;
+        });
+      });
+
+      // 滚动时反推当前分类高亮
+      sc.addEventListener("scroll", () => {
+        const heads = [...body.querySelectorAll(".cat-head")];
+        let active = 0;
+        const topLine = sc.getBoundingClientRect().top + chipH() + 8;
+        heads.forEach((h, i) => {
+          if (h.getBoundingClientRect().top <= topLine) active = i;
+        });
+        chips.querySelectorAll(".chip").forEach((c, i) => {
+          c.classList.toggle("is-on", i === active);
+        });
+      }, { passive: true });
+
+      note.textContent = "点 chip 或滚动，段头会吸顶";
+    })();
+
+    /* ===== 11 FAB ===== */
+    (function () {
+      const fab = document.getElementById("fab");
+      const fabLocal = document.getElementById("fabLocal");
+      const sc = document.getElementById("sc11");
+      const list = document.getElementById("list11");
+      const note = document.getElementById("n11");
+
+      list.innerHTML = Array.from({ length: 24 }).map((_, i) =>
+        `<div class="cat-item">长列表行 ${i + 1} · 继续向下滚</div>`
+      ).join("");
+
+      function pageScrollTop() {
+        return window.scrollY || document.documentElement.scrollTop || 0;
+      }
+
+      function syncPageFab() {
+        // 约一屏即显示，避免整页不够「两屏」时永远不出现
+        const show = pageScrollTop() > window.innerHeight * 0.8;
+        fab.classList.toggle("is-on", show);
+      }
+
+      function syncLocalFab() {
+        const show = sc.scrollTop > sc.clientHeight * 0.6;
+        fabLocal.classList.toggle("is-on", show);
+        note.textContent = show
+          ? "列表内 FAB 可见 · 点击回列表顶（不重载）"
+          : "在上方框内向下滚动以显示回顶钮";
+      }
+
+      window.addEventListener("scroll", syncPageFab, { passive: true });
+      sc.addEventListener("scroll", syncLocalFab, { passive: true });
+      syncPageFab();
+      syncLocalFab();
+
+      fab.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+      });
+      fabLocal.addEventListener("click", () => {
+        sc.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+      });
+    })();
+
+    /* ===== 12 hover prefetch ===== */
+    (function () {
+      const list = document.getElementById("list12"), hint = document.getElementById("prefHint"), note = document.getElementById("n12");
+      const cache = new Map();
+      makeItems(1,4,"详情").forEach((it,i)=>{
+        const el = productEl(it,i);
+        el.style.cursor = "pointer";
+        let timer=null;
+        el.addEventListener("pointerenter", ()=>{
+          timer = setTimeout(async ()=>{
+            hint.textContent = `预取中… #${it.id}`;
+            await sleep(280);
+            cache.set(it.id, { title: it.title, detail: `详情缓存 ${it.id} · ${Date.now()%1000}` });
+            hint.textContent = `已缓存 #${it.id}`;
+            note.textContent = "prefetch ready";
+          }, 200);
+        });
+        el.addEventListener("pointerleave", ()=>{ clearTimeout(timer); });
+        el.addEventListener("click", ()=>{
+          const hit = cache.get(it.id);
+          hint.textContent = hit ? `秒开：${hit.detail}` : "无缓存，走慢加载…";
+          note.textContent = hit ? "cache hit" : "cache miss";
+        });
+        list.appendChild(el);
+        showProduct(el,i);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -34,4 +34,5 @@
 | [`soft-card-ui`](./soft-card-ui/) | 物流/软卡片视觉语言与布局 | 无独立 demo（配方文档） |
 | [`micro-interactions`](./micro-interactions/) | 手势微交互 | [`demo.html`](./micro-interactions/demo.html) |
 | [`feedback-states`](./feedback-states/) | 操作反馈模式 | [`demo.html`](./feedback-states/demo.html) 等 |
+| [`feed-loading`](./feed-loading/) | 列表加载编排（骨架/预加载/刷新/瀑布流/筛选/Tab/失败条/吸顶/回顶/预取等 12 模式） | [`demo.html`](./feed-loading/demo.html) |
 | [`data-table-interactions`](./data-table-interactions/) | 表格操作交互（含键盘焦点/滚动分离） | [`demo.html`](./data-table-interactions/demo.html) |
